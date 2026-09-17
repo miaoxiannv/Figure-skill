@@ -1,0 +1,193 @@
+{
+  "skill_name": "nature-figure-pdf",
+  "evals": [
+    {
+      "id": "backend-python-only-refuses-r-request",
+      "prompt": "Use R (ggplot2/ComplexHeatmap) to remake my ecological heatmap figure in Nature style. I prefer R.",
+      "expected_output": "The skill is Python-only: the assistant must not draw the figure in R. It should explain that this skill plots exclusively in Python, offer to export the source data to CSV/TSV (R allowed only for non-visual data conversion), and then deliver the figure from Python with the locked house style and a Chinese filename.",
+      "assertions": [
+        {
+          "name": "no_r_plotting",
+          "description": "No ggplot2/ComplexHeatmap/cairo_pdf code is produced for the figure; no PDF/PNG/SVG is generated from R."
+        },
+        {
+          "name": "python_path_offered",
+          "description": "The response offers the Python plotting path and, if R data objects are involved, a CSV/TSV export step instead of refusing outright."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "backend-python-missing-package",
+      "prompt": "Use Python to make a Nature-style heatmap figure with simulated data. Assume matplotlib or another required Python plotting package is not installed locally.",
+      "expected_output": "The assistant must not use R or any non-Python plotting backend to draw a preview or export. It should report the missing Python plotting dependency, provide or offer a Python-only script and install/run instructions, and stop before rendering.",
+      "assertions": [
+        {
+          "name": "no_cross_backend_rendering",
+          "description": "When Python is selected and unavailable, no R/ggplot2/ComplexHeatmap/patchwork preview, SVG, PDF, TIFF, or PNG is generated as a substitute."
+        },
+        {
+          "name": "selected_backend_blocker_reported",
+          "description": "The response clearly reports the missing Python runtime or package blocker and does not present a non-Python figure as completed output."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "one-figure-one-message-split-request",
+      "prompt": "Make me one Nature-style figure that shows the UMAP clusters AND the marker-gene heatmap AND the group bar chart for my single-cell data.",
+      "expected_output": "The assistant must not produce a multi-panel composite. It should propose three separate single-chart PDFs, each carrying one message, each with its own Chinese filename, and clarify the per-figure contracts before plotting.",
+      "assertions": [
+        {
+          "name": "no_composite_figure",
+          "description": "No subplot grid, mosaic, or merged composite figure is created; one chart per output file."
+        },
+        {
+          "name": "split_proposal",
+          "description": "The response explicitly splits the request into separate single-message figures with distinct Chinese filenames."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "language-policy-filename-vs-content",
+      "prompt": "用 Python 画一张两组肿瘤体积比较的柱状图，Nature 风格。",
+      "expected_output": "The assistant asks/infers nothing about the backend (Python-only), then produces one minimal bar chart PDF whose filename is descriptive Chinese (e.g. 两组肿瘤体积比较.pdf) while every text element inside the figure is English.",
+      "assertions": [
+        {
+          "name": "chinese_filename_english_content",
+          "description": "Saved file uses a Chinese descriptive name; figure text contains zero Chinese characters."
+        },
+        {
+          "name": "pdf_only",
+          "description": "Exactly one PDF is produced; no PNG/SVG companions."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "scientific-colormap-replaces-rainbow",
+      "prompt": "Draw a heatmap of z-scored gene expression across samples. I like colorful rainbow maps.",
+      "expected_output": "The assistant rejects rainbow/jet, classifies the variable as diverging with a meaningful zero center, uses RdBu_r (or Crameri vik) with center=0 and symmetric limits, adds a labeled color bar, and notes grayscale/CVD validation.",
+      "assertions": [
+        {
+          "name": "no_rainbow",
+          "description": "No rainbow/jet/turbo colormap is used."
+        },
+        {
+          "name": "class_match_and_colorbar",
+          "description": "Diverging map with explicit center and labeled color bar; validation (grayscale/CVD) mentioned."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "cnsplots-mandatory-basic-bar-chart",
+      "prompt": "用 Python 画一张处理组与对照组肿瘤体积比较的柱状图，Nature 风格，数据可以模拟。",
+      "expected_output": "The assistant produces one minimal bar chart whose plotting code uses cnsplots (import cnsplots as cns; cns.figure / cns.barplot / cns.savefig with a Chinese .pdf filename), with significance marks from pairs= (cnsplots runs Welch's t-test internally; test=/p_adjust= kwargs are invalid on 0.6.0 barplot) rather than hand-drawn brackets. Raw seaborn.barplot or matplotlib bar calls for this chart are a failure.",
+      "assertions": [
+        {
+          "name": "cnsplots_used_for_basic_chart",
+          "description": "Bar chart code imports cnsplots and draws via cns.barplot (plus cns.figure/cns.savefig), not seaborn/matplotlib primitives."
+        },
+        {
+          "name": "mandate_coverage",
+          "description": "Response states (or code shows) that Python basic chart types are drawn with cnsplots per the skill mandate."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "cnsplots-missing-no-silent-fallback",
+      "prompt": "用 Python 画一张两组间基因表达散点图。假设本机没有安装 cnsplots。",
+      "expected_output": "The assistant must not silently draw the scatter plot with seaborn/matplotlib. It reports that cnsplots (mandatory for Python basic charts) is missing, offers `pip install cnsplots` or asks permission to install, and provides the cnsplots-based script (cns.figure / cns.scatterplot / cns.savefig) to run once installed.",
+      "assertions": [
+        {
+          "name": "no_silent_seaborn_fallback",
+          "description": "No seaborn.scatterplot / matplotlib scatter output is presented as completed deliverable while cnsplots is unavailable."
+        },
+        {
+          "name": "blocker_reported_with_install_path",
+          "description": "Response names the missing cnsplots dependency and gives the install command or asks permission to install, then supplies a cnsplots-based script."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "forbidden-dumbbell-lollipop-charts",
+      "prompt": "Compare gene expression between control and treated groups for these 20 genes. A dumbbell chart or lollipop chart would look compact and elegant here — draw one.",
+      "expected_output": "The assistant must refuse the dumbbell/lollipop form (forbidden chart types) without lecturing excessively: it proposes the established alternative instead (grouped bar, paired slope via line plot, plain scatter, or forest plot per references/chart-types.md), and never hand-rolls hlines+scatter to imitate one.",
+      "assertions": [
+        {
+          "name": "no_dumbbell_lollipop",
+          "description": "No dumbbell (two dots + segment per row) or lollipop (stem + dot per row) chart is drawn or provided as code."
+        },
+        {
+          "name": "established_alternative_proposed",
+          "description": "The response proposes a sanctioned chart type (bar/line/scatter/forest) carrying the same one-message comparison."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "heatmap-house-style-locked",
+      "prompt": "用 Python 画一张 33 个基因 × 8 个样本的 z-score 表达热图，投期刊。要好看。",
+      "expected_output": "The assistant applies the locked heatmap house style without re-deriving choices: square cells (0.125 in), thin black borders (linewidths=0.35, linecolor='black'), RdBu_r with center=0 and symmetric limits, italic horizontal row labels, and the small manual inset colorbar right of the matrix vertically upper-middle (Bbox anchor, ColorbarBase, spines not .outline) — not matplotlib's auto colorbar strip and not white borders.",
+      "assertions": [
+        {
+          "name": "square_cells_black_borders",
+          "description": "Code uses square=True with thin black (not white) linewidth borders."
+        },
+        {
+          "name": "diverging_map_centered",
+          "description": "RdBu_r (or equivalent whitelisted diverging map) with center=0 and symmetric vmin/vmax for z-scores."
+        },
+        {
+          "name": "manual_inset_colorbar",
+          "description": "Colorbar is the small manual inset right of the matrix (inset_axes + Bbox anchor + ColorbarBase), not an auto cbar strip."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "pdf-plus-preview-png-delivery",
+      "prompt": "用 Python 画一张 Nature 单栏宽的组间比较小提琴图，数据模拟即可。",
+      "expected_output": "The assistant delivers exactly two files per figure: the submission PDF (Chinese filename, exact 89 mm canvas, editable text, verify_figure_pdf passed) plus one review companion <中文文件名>_预览.png rendered from the PDF at 300 dpi (pymupdf) — and no other image files.",
+      "assertions": [
+        {
+          "name": "preview_png_rendered",
+          "description": "A <中文文件名>_预览.png (300 dpi) companion is rendered from the final PDF and its path reported."
+        },
+        {
+          "name": "no_extra_image_files",
+          "description": "No SVG/TIFF/EPS or additional PNGs beyond the single 预览 companion are produced."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "arial-7pt-and-palette-whitelist",
+      "prompt": "用 Python 和 cnsplots 画一张三种细胞亚群比例比较的柱状图，投 Nature。",
+      "expected_output": "The plotting code locks the font family to Arial only (cns.settings.font_sans_serif = ['Arial'] before cns.figure, or font.sans-serif=['Arial']), sets every text element to 7 pt, sizes the canvas at 252 px width (89 mm Nature single column) with savefig_bbox='standard', takes colors from a documented mature palette (cns.palettes('Nature'/'Cell'/'Science'/Ecotyper/ColorBrewer) or Okabe-Ito constants) instead of ad-hoc hexes, and runs a verification step (verify_figure_pdf or equivalent pypdf check) asserting Arial-only embedded fonts and the exact physical width.",
+      "assertions": [
+        {
+          "name": "arial_only_font_lock",
+          "description": "Font family is locked to Arial with no Helvetica/DejaVu fallback in the code; superscripts use mathtext, not unicode characters."
+        },
+        {
+          "name": "uniform_7pt",
+          "description": "All text elements are set to 7 pt (font.size/labelsize/tick labelsize/legend)."
+        },
+        {
+          "name": "palette_from_whitelist",
+          "description": "Colors come from a named mature palette (cns.palettes or documented constants); no ad-hoc hex values outside the whitelist."
+        },
+        {
+          "name": "export_verification",
+          "description": "Response includes or runs an automated PDF check for Arial-only embedded fonts and exact journal width."
+        }
+      ],
+      "files": []
+    }
+  ]
+}
