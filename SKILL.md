@@ -2,18 +2,19 @@
 name: nature-figure-pdf
 description: >-
   Submission-grade single-message scientific figures for Nature, Science, Immunity and
-  other high-impact journals, in Python. Use whenever the user asks to create, revise,
-  audit, or polish manuscript figures or journal-ready PDFs (出图/论文图/投稿图/house-style
-  heatmap). Doctrine: ONE figure = ONE message — composites and cnsplots multipanel
+  similar journals, in Python. Use whenever the user asks to create, revise,
+  audit, or polish manuscript figures or journal-ready PDFs (出图/论文图/投稿图/富集图/
+  enrichment dotplot/house-style heatmap). Doctrine: ONE figure = ONE message — composites
+  and cnsplots multipanel
   helpers forbidden. Python basic charts (bar/scatter/line/box/violin/strip/histogram/
   KDE/regression) MUST use cnsplots; raw seaborn/matplotlib for these is a
   reported blocker. Arial 7 pt only, ASCII labels; colors only from documented
   palettes (viridis/cividis/Okabe-Ito/ColorBrewer/cnsplots journal presets), never
-  rainbow/jet/turbo. Dumbbell and lollipop charts forbidden. Heatmaps follow the
+  rainbow/jet/turbo. Dumbbell/lollipop charts forbidden. Heatmaps follow the
   locked house style in chart-types.md. No Chinese text inside figures;
   Chinese filenames. Deliver one submission PDF plus one 300-dpi _预览.png companion,
   QA'd with scripts/figure_qa.py. Python-only backend — never plot in R;
-  export R-origin data to CSV/TSV first. Not for interactive/EDA plots.
+  export R data to CSV/TSV first. Not for interactive/EDA.
 ---
 
 # Nature Figure Skill — 一图一义 · 极简 · 科学配色
@@ -249,8 +250,8 @@ def save_pub(fig, chinese_filename, width_mm=89, height_mm=60):
 
 - Single scientific figures for Nature, Science, Immunity, Cell, or similar venues.
 - Bar charts, scatter plots, UMAP/t-SNE embeddings, heatmaps, line trends, distributions,
-  volcano plots, forest plots, GO gene-concept networks (cnetplot style) — one chart
-  type per file.
+  volcano plots, forest plots, GO/KEGG enrichment dotplots, GO gene-concept networks
+  (cnetplot style) — one chart type per file.
 - Requests to audit or simplify an existing figure for journal submission.
 
 ## When NOT to load

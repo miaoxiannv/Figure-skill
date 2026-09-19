@@ -228,6 +228,26 @@
         }
       ],
       "files": []
+    },
+    {
+      "id": "enrichment-dotplot-immunity-style",
+      "prompt": "帮我画一张GO富集图，就是那种点状的。",
+      "expected_output": "The assistant produces the locked enrichment dotplot per references/chart-types.md: rows sorted by -log10(P) with the most significant on top, x = gene ratio in percent, dot size = gene count, dot color = -log10(P) on a sequential Oranges scale with a stated cap (never a diverging red-blue scale), and the compact Immunity-style legend block in the top-right corner (thin colorbar + small data-colored size-key dots) — never an oversized gray legend. Arial 7 pt, 119.9 mm canvas, one Chinese-named PDF, then figure_qa.py verify + preview.",
+      "assertions": [
+        {
+          "name": "sequential_encoding",
+          "description": "Dot color uses a sequential Oranges scale for -log10(P) with a stated cap; a diverging red-blue scale for P values is a failure."
+        },
+        {
+          "name": "compact_legend",
+          "description": "Legend block is the compact corner style (thin colorbar + small data-colored size key), not an oversized gray legend that dominates the panel."
+        },
+        {
+          "name": "row_order_and_axis",
+          "description": "Rows sorted by significance (most significant on top); x axis is gene ratio in percent."
+        }
+      ],
+      "files": []
     }
   ]
 }

@@ -206,6 +206,113 @@ Single stacked bar or 100% bar via the cnsplots stacked-bar function
 (angle decoding is weak); use only when composition with very few parts is the
 entire message.
 
+## GO enrichment dotplot (Immunity house style)
+
+**Standard name:** GO/KEGG enrichment dotplot (clusterProfiler `dotPlot` family,
+Cell Press / Immunity house style). The single message: **which pathways are
+enriched, how significant each is, and how many genes drive it.** Rows may be
+individual GO terms or merged pathway groups — the recipe is identical.
+
+### Encoding spec (locked — "画富集图" means this, do not re-derive)
+
+| Element | Encoding | Rule |
+|---|---|---|
+| Rows | pathways, sorted by −log10(P) | most significant always on top |
+| x position | gene ratio | plotted in **percent** with one decimal (0.0067 → "0.7"); limit = max × 1.15 |
+| Dot size | gene count | `(10 + 1.8 * count)` pt² — largest dot ≈ 12 pt diameter |
+| Dot color | −log10(P) | ColorBrewer **Oranges**, sequential `Normalize(0, VMAX)` with `VMAX = max(3, ceil(max))`; **no dot edges**; a diverging red-blue scale for P values is forbidden (no meaningful center) |
+| Colorbar | thin, top-right | width 0.012 of the figure, ticks at 0 / mid / max only |
+| Size key | 3 reference dots | **filled with the data palette (#FD8D3C), not gray**, below the colorbar; values = 5th percentile / median / max of the counts |
+| Text | Arial 7 pt everywhere, labels wrapped at 24 chars | legend block stays in the top-right corner and must never dominate the panel |
+
+```python
+# GO enrichment dotplot (Immunity house style) — one message: which pathways
+# are enriched, how significant, and how many genes drive each.
+import textwrap
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+mpl.rcParams.update({                    # mandatory style block (references/api.md)
+    "font.family": "sans-serif", "font.sans-serif": ["Arial"],
+    "mathtext.fontset": "custom", "mathtext.rm": "Arial",
+    "mathtext.it": "Arial:italic", "mathtext.bf": "Arial",
+    "pdf.fonttype": 42, "font.size": 7,
+    "axes.spines.right": False, "axes.spines.top": False,
+    "axes.linewidth": 0.7, "legend.frameon": False,
+    "xtick.major.width": 0.7, "ytick.major.width": 0.7,
+})
+
+SRC = "enrichment.csv"
+# map the recipe's canonical fields onto the source file's columns
+# (clusterProfiler exports Description/GeneRatio/P.adjust/Count; Enrichr differs)
+COL = {"term": "Description", "ratio": "GeneRatio", "p": "P_value", "count": "GeneCount_overlap"}
+OUT = "GO富集点图"
+
+d = pd.read_csv(SRC)
+d["nlp"] = -np.log10(pd.to_numeric(d[COL["p"]], errors="coerce").fillna(1))
+d = d.sort_values("nlp").reset_index(drop=True)   # sort FIRST so rows/x/size/color stay aligned
+
+r = d[COL["ratio"]]
+if r.dtype == object:  # clusterProfiler exports gene ratio as the string "k/n"
+    r = r.map(lambda v: float(v.split("/")[0]) / float(v.split("/")[1])
+              if isinstance(v, str) and "/" in v else float(v))
+ratio = r.to_numpy(float)
+count = pd.to_numeric(d[COL["count"]], errors="coerce").fillna(0).to_numpy(int)
+nlp = d["nlp"].to_numpy(float)
+labels = [textwrap.fill(t, 24) for t in d[COL["term"]]]
+
+SIZE = lambda c: 10 + c * 1.8                  # count -> pt²; largest dot ≈ 12 pt diameter
+VMAX = max(3.0, float(np.ceil(nlp.max())))     # round color cap — state it in the caption
+
+fig, ax = plt.subplots(figsize=(340 / 72, 2.9), facecolor="white")  # 340 px = 119.9 mm
+fig.subplots_adjust(left=0.435, right=0.815, top=0.97, bottom=0.16)
+
+sc = ax.scatter(ratio, range(len(d)), s=SIZE(count), c=nlp, cmap="Oranges",
+                norm=mpl.colors.Normalize(vmin=0, vmax=VMAX), zorder=3)   # no dot edges
+ax.set_yticks(range(len(d)), labels, fontsize=7, linespacing=0.95)
+ax.set_xlabel("Gene ratio (%)", fontsize=7)
+ax.set_xlim(0, ratio.max() * 1.15)
+ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda v, _: f"{v*100:.1f}"))
+ax.tick_params(labelsize=7)
+ax.margins(y=0.06)
+
+# compact Immunity-style legend block, top-right corner
+cax = fig.add_axes([0.845, 0.62, 0.012, 0.30])
+cb = fig.colorbar(sc, cax=cax)
+cb.set_ticks(np.linspace(0, VMAX, 3))
+cb.ax.tick_params(labelsize=7, length=1.0, width=0.4, pad=0.8)
+cb.outline.set_linewidth(0.4)
+cb.set_label("$-\\log_{10}P$", fontsize=7, labelpad=1.5)
+
+lax = fig.add_axes([0.825, 0.13, 0.155, 0.33]); lax.set_axis_off()
+lax.text(0.5, 1.0, "Gene count", ha="center", va="top", fontsize=7, color="black")
+refs = [int(np.percentile(count, 5)), int(np.percentile(count, 50)), int(count.max())]
+for i, c in enumerate(refs):
+    lax.scatter([i], [0], s=SIZE(c), facecolor="#FD8D3C", edgecolor="0.45", linewidth=0.3)
+    lax.text(i, -0.85, str(c), ha="center", va="top", fontsize=7, color="black")
+lax.set_xlim(-0.5, 2.5); lax.set_ylim(-1.9, 0.85)
+
+fig.savefig(f"{OUT}.pdf")            # exact 119.9 mm canvas, no tight crop
+plt.close(fig)
+```
+
+```bash
+python scripts/figure_qa.py verify GO富集点图.pdf --width-mm 119.9
+python scripts/figure_qa.py preview GO富集点图.pdf
+python scripts/figure_qa.py audit-text GO富集点图.pdf
+```
+
+**Caption must state:** enrichment test and source (e.g. Enrichr Fisher exact /
+clusterProfiler hypergeometric), number of pathways, dot size = gene count,
+dot color = −log10(P) with the VMAX cap, and that rows are sorted by
+significance. Reference style: Immunity/Cell Press enrichment dotplots
+(compact data-colored legend, sequential scale).
+
+---
+
 ## GO gene-concept network (cnetplot style)
 
 **Standard name:** Gene-Concept Network — clusterProfiler's `cnetplot`. The single
