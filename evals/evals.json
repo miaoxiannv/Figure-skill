@@ -208,6 +208,26 @@
         }
       ],
       "files": []
+    },
+    {
+      "id": "go-cnetplot-house-style",
+      "prompt": "用 Python 把这份 Enrichr 的 GO 富集结果画成通路圆圈+基因点的网络图（cnetplot 样式）。",
+      "expected_output": "The assistant draws the gene-concept network per the locked recipe in references/chart-types.md: term circles sized by n_genes and colored by -log10(P) with a LABELED Oranges colorbar; specific genes #FDD0A2 and shared genes #E6550D (ColorBrewer Oranges); deterministic Jaccard spring layout (seed=17) with MD5-seeded gene jitter; Arial 7 pt with pdf.fonttype=42; one PDF with a Chinese filename, then figure_qa.py verify + preview. No ad-hoc gene-dot hexes, no rainbow, no unseeded layout, no hand-drawn replacement of the repulsion algorithm.",
+      "assertions": [
+        {
+          "name": "locked_encoding",
+          "description": "Term size/color mappings and gene-dot hexes (#FDD0A2 / #E6550D) follow the recipe; a labeled colorbar for -log10(P) is present."
+        },
+        {
+          "name": "deterministic_layout",
+          "description": "Layout uses seed=17 spring on Jaccard similarity and MD5-seeded jitter — reproducible across runs, not random per run."
+        },
+        {
+          "name": "qa_chain",
+          "description": "Delivers one Chinese-named PDF and runs scripts/figure_qa.py verify + preview (and audit-text for the 7 pt law)."
+        }
+      ],
+      "files": []
     }
   ]
 }

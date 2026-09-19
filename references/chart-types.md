@@ -206,6 +206,217 @@ Single stacked bar or 100% bar via the cnsplots stacked-bar function
 (angle decoding is weak); use only when composition with very few parts is the
 entire message.
 
+## GO gene-concept network (cnetplot style)
+
+**Standard name:** Gene-Concept Network — clusterProfiler's `cnetplot`. The single
+message: **which enriched pathways the gene set hits, and which shared genes glue
+those pathways together.** Use for Enrichr / clusterProfiler / clusterMagellan
+output with ~30 terms or fewer; with more terms, merge by gene-set similarity or
+take the TopN first (state the cut in the caption).
+
+### Encoding spec (locked — do not re-derive per figure)
+
+| Element | Encoding | Rule |
+|---|---|---|
+| Term circle size | `n_genes` (genes enriched in the term) | `(210 + 2.7 * n_genes) * S²` pt² |
+| Term circle color | `-log10(P)` | ColorBrewer **Oranges**, floor at 0.35, ceiling at `-log10(P) = 8`; a **labeled colorbar is mandatory** — a continuous encoding without one is undecodable |
+| Specific gene dot | belongs to exactly one term | `#FDD0A2` (ColorBrewer Oranges 5-class, bin 2), size `38 * S²` |
+| Shared gene dot | in ≥2 terms (the hubs) | `#E6550D` (Oranges 5-class, bin 4), size `76 * S²` — hubs must read at a glance |
+| Edges | term ↔ gene membership | neutral gray `"0.55"`, width `0.42 * S`, alpha 0.42 |
+| Term labels | pathway name + GO ID, `textwrap` at 25 chars | Arial 7 pt on a translucent white chip; pairwise box repulsion (≤140 rounds); leader line only when displaced > 0.045 |
+| Gene labels | **none in the figure** | hundreds of 7 pt labels cannot survive; gene semantics go in the caption |
+
+### Layout (deterministic — same input, same figure)
+
+1. **Bipartite graph**: term nodes + gene nodes, edges = membership; a gene in
+   ≥2 terms is flagged `shared`.
+2. **Term skeleton**: spring layout on pairwise gene-set **Jaccard similarity**
+   (+0.008 base weight so isolated terms do not fly away), `seed=17`, `k=0.24`,
+   800 iterations — similar pathways cluster automatically.
+3. **Gene placement**: shared genes sit near the centroid of their terms with
+   jitter that grows with the number of terms (σ = 0.025 + 0.008·min(k, 4));
+   specific genes form a satellite ring (radius 0.06–0.13). Jitter seeds come
+   from the gene name's **MD5**, so the same gene always lands in the same place.
+4. **Labels**: anchored radially outside the node cloud, repelled pairwise in
+   display coordinates; leader lines only when a label moved far.
+
+```python
+# GO gene-concept network (cnetplot style) — one message: which pathways the
+# gene set hits, and which shared genes glue pathways together.
+import hashlib
+import itertools
+import textwrap
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+import pandas as pd
+
+mpl.rcParams.update({                    # mandatory style block (references/api.md)
+    "font.family": "sans-serif", "font.sans-serif": ["Arial"],
+    "mathtext.fontset": "custom", "mathtext.rm": "Arial",
+    "mathtext.it": "Arial:italic", "mathtext.bf": "Arial",
+    "pdf.fonttype": 42, "font.size": 7,
+})
+
+SRC = "GO富集图.txt"        # Enrichr TSV: Library, Term, n_genes, P-value, Odds Ratio, Genes
+OUT = "GO富集基因概念网络图"  # Chinese filename -> OUT.pdf + OUT_预览.png
+SEED = 17                   # layout seed — fixed for reproducibility
+WIDTH_IN = 17.0             # canvas follows content (see exemption note below)
+S = WIDTH_IN / 17.0         # ink scale: node areas scale S², line widths S
+
+df = pd.read_csv(SRC, sep="\t", encoding="utf-8-sig", usecols=range(6))
+df["n_genes"] = pd.to_numeric(df["n_genes"], errors="coerce").fillna(1)
+df["P-value"] = pd.to_numeric(df["P-value"], errors="coerce").fillna(1)
+gene_sets = [set(str(g).split(";")) - {"nan", ""} for g in df["Genes"]]
+freq = {g: sum(g in s for s in gene_sets) for g in set().union(*gene_sets)}
+
+# bipartite graph: terms (circles) + genes (dots)
+G = nx.Graph()
+for i, row in df.iterrows():
+    G.add_node(i, kind="term", label=row["Term"], n=row["n_genes"], p=row["P-value"])
+    for gene in gene_sets[i]:
+        node = f"gene:{gene}"
+        G.add_node(node, kind="gene", label=gene, shared=freq[gene] > 1)
+        G.add_edge(i, node)
+
+# term skeleton: spring layout on gene-set Jaccard similarity
+sim = nx.Graph()
+sim.add_nodes_from(list(range(len(df))))
+for i, j in itertools.combinations(range(len(df)), 2):
+    union = len(gene_sets[i] | gene_sets[j])
+    sim.add_edge(i, j, weight=(len(gene_sets[i] & gene_sets[j]) / union if union else 0) + 0.008)
+term_pos = nx.spring_layout(sim, seed=SEED, k=0.24, iterations=800, scale=0.56,
+                            weight="weight")
+
+# gene placement: shared genes near their terms' centroid, specific genes ring out
+pos = {i: np.asarray(term_pos[i], float) for i in range(len(df))}
+for node, d in G.nodes(data=True):
+    if d["kind"] != "gene":
+        continue
+    members = list(G.neighbors(node))
+    base = np.mean([pos[t] for t in members], axis=0)
+    rng = np.random.default_rng(
+        int.from_bytes(hashlib.md5(d["label"].encode()).digest()[:4], "little"))
+    if len(members) > 1:
+        offset = rng.normal(0, 0.025 + 0.008 * min(len(members), 4), 2)
+    else:
+        a, r = rng.uniform(0, 2 * np.pi), rng.uniform(0.06, 0.13)
+        offset = r * np.array([np.cos(a), np.sin(a)])
+    pos[node] = base + offset
+
+fig, ax = plt.subplots(figsize=(WIDTH_IN, WIDTH_IN * 15 / 17), facecolor="white")
+nx.draw_networkx_edges(G, pos, ax=ax, edge_color="0.55", width=0.42 * S, alpha=0.42)
+
+genes = [n for n, d in G.nodes(data=True) if d["kind"] == "gene"]
+specific = [n for n in genes if not G.nodes[n]["shared"]]
+shared = [n for n in genes if G.nodes[n]["shared"]]
+# ColorBrewer Oranges 5-class: #FEEDDE #FDD0A2 #FD8D3C #E6550D #A63603
+nx.draw_networkx_nodes(G, pos, nodelist=specific, node_color="#FDD0A2",
+                       node_size=38 * S * S, edgecolors="white", linewidths=0.45,
+                       alpha=0.9, ax=ax)
+nx.draw_networkx_nodes(G, pos, nodelist=shared, node_color="#E6550D",
+                       node_size=76 * S * S, edgecolors="white", linewidths=0.55,
+                       alpha=0.96, ax=ax)
+terms = list(range(len(df)))
+term_color = [plt.cm.Oranges(0.35 + 0.55 * min(-np.log10(max(G.nodes[t]["p"], 1e-300)) / 8, 1))
+              for t in terms]
+term_size = [(210 + G.nodes[t]["n"] * 2.7) * S * S for t in terms]
+nx.draw_networkx_nodes(G, pos, nodelist=terms, node_color=term_color,
+                       node_size=term_size, edgecolors="white", linewidths=0.9,
+                       alpha=0.98, ax=ax)
+
+# labeled colorbar for the continuous encoding (doctrine requirement)
+sm = mpl.cm.ScalarMappable(norm=mpl.colors.Normalize(vmin=0, vmax=8), cmap="Oranges")
+cbar = fig.colorbar(sm, ax=ax, fraction=0.03, pad=0.015, location="right")
+cbar.set_label("$-\\log_{10}P$", fontsize=7)
+cbar.ax.tick_params(labelsize=7, length=1.4, width=0.5, pad=1.2)
+cbar.outline.set_linewidth(0.5)
+
+# term labels: radial anchor + pairwise box repulsion + leader lines
+center = np.mean([pos[t] for t in terms], axis=0)
+label_artists = []
+for t in terms:
+    direction = pos[t] - center
+    norm = np.linalg.norm(direction)
+    direction = direction / norm if norm else np.array([0.0, 1.0])
+    artist = ax.text(*(pos[t] + direction * 0.095), textwrap.fill(G.nodes[t]["label"], 25),
+                     ha="center", va="center", fontsize=7, color="black",
+                     linespacing=0.90, alpha=0.0, zorder=8, clip_on=False,
+                     bbox=dict(facecolor="white", edgecolor="none", alpha=0.90, pad=0.6))
+    label_artists.append((t, artist))
+
+ax.set_axis_off()
+ax.set_xlim(-0.82, 0.82)
+ax.set_ylim(-0.82, 0.82)
+fig.canvas.draw()
+renderer = fig.canvas.get_renderer()
+inverse = ax.transData.inverted()
+for _ in range(140):
+    changed = False
+    boxes = {t: a.get_window_extent(renderer).expanded(1.10, 1.18) for t, a in label_artists}
+    items = list(label_artists)
+    for i in range(len(items)):
+        ta, aa = items[i]
+        for tb, ab in items[i + 1:]:
+            ba, bb = boxes[ta], boxes[tb]
+            ox = min(ba.x1, bb.x1) - max(ba.x0, bb.x0)
+            oy = min(ba.y1, bb.y1) - max(ba.y0, bb.y0)
+            if ox <= 0 or oy <= 0:
+                continue
+            ca = np.array([(ba.x0 + ba.x1) / 2, (ba.y0 + ba.y1) / 2])
+            cb_ = np.array([(bb.x0 + bb.x1) / 2, (bb.y0 + bb.y1) / 2])
+            delta = ca - cb_
+            if np.linalg.norm(delta) < 1e-6:
+                delta = np.array([1.0, 0.0])
+            axis = np.array([1.0, 0.0]) if ox < oy else np.array([0.0, 1.0])
+            if np.dot(delta, axis) < 0:
+                axis = -axis
+            shift = axis * (min(ox, oy) / 2 + 3.5)
+            for artist, amount in ((aa, shift), (ab, -shift)):
+                x, y = artist.get_position()
+                artist.set_position(inverse.transform(ax.transData.transform((x, y)) + amount))
+            changed = True
+    if not changed:
+        break
+    fig.canvas.draw()
+
+for t, artist in label_artists:      # leader lines only when a label moved far
+    artist.set_alpha(1.0)
+    x, y = pos[t]
+    lx, ly = artist.get_position()
+    if np.hypot(lx - x, ly - y) > 0.045:
+        ax.plot([x, lx], [y, ly], color="0.6", linewidth=0.45 * S, alpha=0.6, zorder=7)
+
+plt.tight_layout(pad=0.1)
+fig.savefig(f"{OUT}.pdf")            # bounded canvas, no tight crop
+plt.close(fig)
+```
+
+### Canvas exemption, QA, and caption
+
+**Canvas exemption (house-style sanctioned).** The canvas follows the network:
+`WIDTH_IN = 17.0` reproduces the reference figure (≈432 mm wide — poster/PPT
+scale, not a journal column). For a journal, either trim to ≤12 terms and set
+`WIDTH_IN = 7.2` (183 mm double column) or keep the content canvas and say so.
+Node areas scale with `S²`, line widths with `S`; the font stays 7 pt. Do not
+export with `bbox_inches="tight"` — `set_xlim`/`set_ylim` already bound the
+content. `verify` against the canvas's own width (17 in → `--width-mm 431.8`).
+
+```bash
+python scripts/figure_qa.py verify GO富集基因概念网络图.pdf --width-mm 431.8
+python scripts/figure_qa.py preview GO富集基因概念网络图.pdf
+python scripts/figure_qa.py audit-text GO富集基因概念网络图.pdf   # 7 pt law (mathtext 4.9 pt allowed)
+```
+
+**Caption must state:** enrichment method and source (e.g. Enrichr, Fisher exact),
+number of terms, dot = gene (light = single term, dark orange = shared hub),
+circle size = n_genes, circle color = −log₁₀(P) (cap 8), layout seed 17 for
+reproducibility.
+
+---
+
 ## Forbidden chart types (do not suggest, do not draw)
 
 - **Dumbbell / 杠铃图** (two dots + connecting segment per row) and

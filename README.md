@@ -120,7 +120,8 @@ plt.close(fig)
 
 **Use for**: single scientific charts (bar, violin, scatter, line, heatmap, UMAP,
 volcano, forest, survival) targeting Nature / Science / Immunity / Cell / NeurIPS
-venues; auditing or simplifying existing figures.
+venues; GO gene-concept networks (cnetplot style, locked recipe); auditing or
+simplifying existing figures.
 
 **Not for**: multi-panel composite figures (forbidden by doctrine), interactive web
 plots, EDA without a publication target, Illustrator/Figma infographics.
