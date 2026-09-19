@@ -1,7 +1,8 @@
 # Tutorials — End-to-End Single-Figure Walkthroughs
 
-Each tutorial produces exactly ONE minimal PDF with a Chinese filename. Style block
-and helpers come from `references/api.md`.
+Each tutorial produces exactly one submission PDF plus its `<中文文件名>_预览.png`
+review companion (300 dpi), both from the Chinese filename. Style block and
+helpers come from `references/api.md`.
 
 ---
 
@@ -32,6 +33,7 @@ ax.set_xlabel(""); ax.set_ylabel("Tumour weight (g)")
 plt.gcf().tight_layout()
 cns.savefig("化合物A对肿瘤重量的影响.pdf")     # PDF with editable text
 verify_figure_pdf("化合物A对肿瘤重量的影响.pdf", width_mm=88.9)
+render_preview("化合物A对肿瘤重量的影响.pdf")   # 化合物A对肿瘤重量的影响_预览.png
 ```
 
 Caption records: Welch's t-test, t, p, n per group, bars = mean ± SD (significance
@@ -64,6 +66,7 @@ fig.set_size_inches(89/25.4, 70/25.4)
 fig.savefig("基因X在UMAP上的表达分布.pdf")
 plt.close(fig)
 verify_figure_pdf("基因X在UMAP上的表达分布.pdf", width_mm=88.9)
+render_preview("基因X在UMAP上的表达分布.pdf")   # 基因X在UMAP上的表达分布_预览.png
 ```
 
 Sequential viridis + labeled colorbar; embedding computed by scanpy, never by hand.
@@ -110,6 +113,10 @@ cb_ax.set_ylabel("Row z-score", fontsize=5.5, labelpad=1.5)
 fig.tight_layout()
 fig.savefig("线粒体基因Z分数热图.pdf")
 plt.close(fig)
+# house-style canvas width follows the column count — verify against its own size
+verify_figure_pdf("线粒体基因Z分数热图.pdf",
+                  width_mm=round((1.55 + Z.shape[1] * 0.125) * 25.4, 1))
+render_preview("线粒体基因Z分数热图.pdf")   # 线粒体基因Z分数热图_预览.png
 ```
 
 Diverging map justified: zero (cohort mean) is a meaningful center.

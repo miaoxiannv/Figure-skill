@@ -25,7 +25,7 @@ guide for the target journal before submission.
 | Font | Arial only — embedded font list contains zero non-Arial families; no serif anywhere |
 | Text size | 7 pt uniform (labels, ticks, legend, annotations); verified in the PDF |
 | Final size | Exact journal column width (Nature 89 mm / Science 55 mm / Immunity 85 mm); height within journal limit; no tight-crop shrinkage |
-| Automated export check | `verify_figure_pdf` passed: one page, Arial-only fonts, exact width — a failed check blocks delivery |
+| Automated export check | `verify_figure_pdf` passed: one page, Arial-only fonts at any nesting depth (incl. Form XObjects), exact width — a failed check blocks delivery |
 | Editable text | `pdf.fonttype = 42`; text selectable, not outlined |
 | Background | Pure white; no fills, borders, chartjunk, 3D, shadows, gradients |
 | Spines/grid | Left+bottom spines only; no gridlines unless reference-meaningful |

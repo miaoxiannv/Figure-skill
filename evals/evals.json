@@ -52,15 +52,15 @@
     {
       "id": "language-policy-filename-vs-content",
       "prompt": "用 Python 画一张两组肿瘤体积比较的柱状图，Nature 风格。",
-      "expected_output": "The assistant asks/infers nothing about the backend (Python-only), then produces one minimal bar chart PDF whose filename is descriptive Chinese (e.g. 两组肿瘤体积比较.pdf) while every text element inside the figure is English.",
+      "expected_output": "The assistant asks/infers nothing about the backend (Python-only), then produces one minimal bar chart PDF whose filename is descriptive Chinese (e.g. 两组肿瘤体积比较.pdf) while every text element inside the figure is English, plus the <中文文件名>_预览.png review companion.",
       "assertions": [
         {
           "name": "chinese_filename_english_content",
           "description": "Saved file uses a Chinese descriptive name; figure text contains zero Chinese characters."
         },
         {
-          "name": "pdf_only",
-          "description": "Exactly one PDF is produced; no PNG/SVG companions."
+          "name": "pdf_plus_single_preview",
+          "description": "Exactly one submission PDF plus one _预览.png companion rendered from it; no SVG or other image files."
         }
       ],
       "files": []
@@ -168,7 +168,7 @@
     {
       "id": "arial-7pt-and-palette-whitelist",
       "prompt": "用 Python 和 cnsplots 画一张三种细胞亚群比例比较的柱状图，投 Nature。",
-      "expected_output": "The plotting code locks the font family to Arial only (cns.settings.font_sans_serif = ['Arial'] before cns.figure, or font.sans-serif=['Arial']), sets every text element to 7 pt, sizes the canvas at 252 px width (89 mm Nature single column) with savefig_bbox='standard', takes colors from a documented mature palette (cns.palettes('Nature'/'Cell'/'Science'/Ecotyper/ColorBrewer) or Okabe-Ito constants) instead of ad-hoc hexes, and runs a verification step (verify_figure_pdf or equivalent pypdf check) asserting Arial-only embedded fonts and the exact physical width.",
+      "expected_output": "The plotting code locks the font family to Arial only (cns.settings.font_sans_serif = ['Arial'] before cns.figure, or font.sans-serif=['Arial']), sets every text element to 7 pt, sizes the canvas at 252 px width (89 mm Nature single column) with savefig_bbox='standard', takes colors from a documented mature palette (cns.palettes('Nature'/'Cell'/'Science'/Ecotyper/ColorBrewer) or Okabe-Ito constants) instead of ad-hoc hexes, and runs a verification step (verify_figure_pdf or an equivalent PDF-font check) asserting Arial-only embedded fonts and the exact physical width.",
       "assertions": [
         {
           "name": "arial_only_font_lock",

@@ -30,7 +30,9 @@ serves the figure.
 
 1. **One figure, one message (一图一义).** Every figure answers exactly ONE scientific
    question and makes exactly ONE point. Multi-panel composite figures, merged "big figures",
-   and hero-panel layouts are **forbidden**. If the story needs three points, deliver three
+   and hero-panel layouts are **forbidden** — including cnsplots' own composite helpers
+   (`cns.multipanel()`, `cns.add_panel_label()`): the doctrine bans the output, not just
+   the tooling. If the story needs three points, deliver three
    separate PDF files. Never combine independent figures into a composite page.
 2. **Simplicity first (简洁第一).** Remove every element that does not carry data: no
    chartjunk, no 3D effects, no decorative gradients, no drop shadows, no background fills,
@@ -186,6 +188,8 @@ plt.rcParams.update({"font.size": 7, "axes.labelsize": 7,
 cns.barplot(data=df, x="group", y="value", hue="group", legend=False,
             palette=["#B0B0B0", "#0072B2"], pairs=[("Control", "Treated")])
 cns.savefig("各组指标比较.pdf")
+verify_figure_pdf("各组指标比较.pdf", width_mm=88.9)   # mandatory pre-delivery check
+render_preview("各组指标比较.pdf")                      # <中文文件名>_预览.png, 300 dpi
 ```
 
 Full settings, palette whitelist, and the `verify_figure_pdf` check:
@@ -221,7 +225,8 @@ mpl.rcParams.update({
 })
 
 def save_pub(fig, chinese_filename, width_mm=89, height_mm=60):
-    """Save at the exact journal size — no tight crop, then close."""
+    """Save at the exact journal size — no tight crop — then close.
+    Afterwards run verify_figure_pdf(...) and render_preview(...) (references/api.md)."""
     fig.set_size_inches(width_mm / 25.4, height_mm / 25.4)
     fig.savefig(f"{chinese_filename}.pdf")
     plt.close(fig)

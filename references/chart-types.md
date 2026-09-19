@@ -65,12 +65,12 @@ cns.savefig("肿瘤体积随时间变化.pdf")
 ## Scatter (co-variation)
 
 ```python
-from adjustText import adjust_texts
+from adjustText import adjust_text   # NOT adjust_texts — that name does not exist
 
 cns.figure(width=252, height=252)   # 88.9 x 88.9 mm square
 ax = cns.scatterplot(data=df, x="x", y="y", hue="cluster")
 texts = [ax.text(r.x, r.y, r.gene) for r in label_rows]
-adjust_texts(texts, arrowprops=dict(arrowstyle="-", lw=0.4, color="0.4"))
+adjust_text(texts, ax=ax, arrowprops=dict(arrowstyle="-", lw=0.4, color="0.4"))
 cns.savefig("两指标相关性散点图.pdf")
 ```
 
@@ -193,7 +193,9 @@ entire message.
 
 ## Universal prohibitions
 
-- No multi-panel composition, no subplot grids — one chart per file.
+- No multi-panel composition, no subplot grids — one chart per file. This also
+  forbids cnsplots' own composite helpers (`cns.multipanel()`,
+  `cns.add_panel_label()`): the doctrine bans the output, not just the tooling.
 - No hand-rolled statistical tests, dimensionality reduction, or layout math that a
   mature package already provides.
 - No raw seaborn/matplotlib calls for basic chart types (bar, scatter, line, box,

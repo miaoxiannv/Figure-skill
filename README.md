@@ -76,6 +76,7 @@ cns.barplot(data=df, x="group", y="value", hue="group", legend=False,
             palette=["#B0B0B0", "#0072B2"], pairs=[("Control", "Treated")])
 cns.savefig("各组指标比较.pdf")
 verify_figure_pdf("各组指标比较.pdf", width_mm=88.9)   # references/api.md
+render_preview("各组指标比较.pdf")                      # 各组指标比较_预览.png (300 dpi)
 ```
 
 Chart types cnsplots does not cover (heatmap, UMAP styling, …) use the rcParams style
@@ -104,6 +105,7 @@ mpl.rcParams.update({
 fig.set_size_inches(89 / 25.4, 60 / 25.4)      # exact journal canvas, no tight crop
 fig.savefig("中文描述性文件名.pdf")
 plt.close(fig)
+# then run verify_figure_pdf(...) + render_preview(...)  — references/api.md
 ```
 
 ## Scope

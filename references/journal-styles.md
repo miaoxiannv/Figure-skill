@@ -16,13 +16,16 @@ revised periodically.
 almost never needs double-column width. Choose double column only when the chart
 genuinely cannot stay legible at single-column size.
 
-cnsplots canvases are sized in **pixels at 72 px/in** (`inches = px / 72`):
+cnsplots canvases are sized in **pixels at 72 px/in** (`inches = px / 72`).
+Conversion rule: **px = floor(mm ÷ 25.4 × 72)** — always round DOWN so the canvas
+never exceeds the column; pass the canvas's own mm width (`px ÷ 72 × 25.4`) to
+`verify_figure_pdf(width_mm=...)`:
 
 | Journal | Single column | 1.5 column | Double column |
 |---|---|---|---|
-| Nature 89 / 120 / 183 mm | 252 px | 340 px | 516 px |
-| Science 55 / 120 / 182 mm | 155 px | 340 px | 516 px |
-| Immunity 85 / 114 / 174 mm | 240 px | 323 px | 491 px |
+| Nature 89 / 120 / 183 mm | 252 px (verify 88.9) | 340 px (verify 119.9) | 518 px (verify 182.7) |
+| Science 55 / 120 / 182 mm | 155 px (verify 55.0) | 340 px (verify 119.9) | 515 px (verify 181.7) |
+| Immunity 85 / 114 / 174 mm | 240 px (verify 84.7) | 323 px (verify 113.9) | 493 px (verify 173.9) |
 
 Export with `cns.settings.savefig_bbox = "standard"` (never `"tight"`, which crops
 the canvas below the column width) and verify the final PDF physical size with

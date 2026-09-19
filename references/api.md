@@ -116,24 +116,28 @@ produce any other image files.
 
 ## Mandatory pre-delivery verification (Python)
 
-Run on every exported PDF before delivering. Requires `pip install pypdf`.
+Run on every exported PDF before delivering. Requires `pip install pymupdf` (the
+same dependency the preview renderer uses — no separate install).
 
 ```python
-from pypdf import PdfReader
+import pymupdf
 
 def verify_figure_pdf(path, width_mm=88.9):
-    """Assert: one page, Arial-only embedded fonts, exact journal width."""
-    r = PdfReader(path)
-    assert len(r.pages) == 1, f"expected 1 page, got {len(r.pages)}"
-    box = r.pages[0].mediabox
-    w_mm, h_mm = float(box.width) / 72 * 25.4, float(box.height) / 72 * 25.4
-    fonts = {str(f.get_object().get("/BaseFont"))
-             for f in r.pages[0].get("/Resources", {}).get("/Font", {}).values()}
+    """Assert: one page, Arial-only fonts at ANY nesting depth, exact journal width."""
+    doc = pymupdf.open(path)
+    assert doc.page_count == 1, f"expected 1 page, got {doc.page_count}"
+    page = doc[0]
+    w_mm, h_mm = page.rect.width / 72 * 25.4, page.rect.height / 72 * 25.4
+    fonts = {f[3] for f in page.get_fonts(full=True)}   # f[3] = BaseFont name
     non_arial = {f for f in fonts if "Arial" not in f}
     assert not non_arial, f"non-Arial fonts embedded: {non_arial} — fix font lock"
     assert abs(w_mm - width_mm) < 0.3, f"width {w_mm:.1f} mm != {width_mm} mm"
     print(f"OK: {w_mm:.1f} x {h_mm:.1f} mm, fonts = {sorted(fonts)}")
 ```
+
+The font scan walks the whole page resource tree — including fonts nested inside
+Form XObjects, which a naive page-level `/Resources/Font` read (e.g. a plain
+pypdf one-liner) silently misses. Do not downgrade it to a shallower check.
 
 A failure here is a delivery blocker: fix the font lock / canvas size and re-export —
 never hand the figure to the user unverified.
