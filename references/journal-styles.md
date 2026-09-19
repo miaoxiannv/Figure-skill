@@ -19,7 +19,7 @@ genuinely cannot stay legible at single-column size.
 cnsplots canvases are sized in **pixels at 72 px/in** (`inches = px / 72`).
 Conversion rule: **px = floor(mm ÷ 25.4 × 72)** — always round DOWN so the canvas
 never exceeds the column; pass the canvas's own mm width (`px ÷ 72 × 25.4`) to
-`verify_figure_pdf(width_mm=...)`:
+`figure_qa.py verify --width-mm ...`:
 
 | Journal | Single column | 1.5 column | Double column |
 |---|---|---|---|
@@ -29,7 +29,7 @@ never exceeds the column; pass the canvas's own mm width (`px ÷ 72 × 25.4`) to
 
 Export with `cns.settings.savefig_bbox = "standard"` (never `"tight"`, which crops
 the canvas below the column width) and verify the final PDF physical size with
-`verify_figure_pdf` (`references/api.md`).
+`scripts/figure_qa.py verify --width-mm ...` (`references/api.md`).
 
 ## Typography
 
@@ -81,5 +81,5 @@ font.size       = 7 pt (uniform: labels, ticks, legend, annotations)
 spines          = left + bottom only, 0.7 pt
 legend          = frameless, 7 pt
 background      = pure white, axes and figure
-output          = PDF (submission) + _预览.png (300 dpi review), verify_figure_pdf must pass
+output          = PDF (submission) + _预览.png (300 dpi review); figure_qa.py verify must pass
 ```

@@ -1,23 +1,19 @@
 ---
 name: nature-figure-pdf
 description: >-
-  Submission-grade single-message scientific figure workflow for academic manuscripts —
-  Nature, Science, Immunity and other high-impact journals, in Python. Use whenever the
-  user asks to create, revise, audit, or polish manuscript figures or journal-ready
-  PDFs (出图/论文图/投稿图/house-style heatmap). Core doctrine: ONE figure
-  conveys ONE message — composites forbidden. Python basic charts (bar, scatter, line,
-  box, violin, strip, histogram, KDE, regression) MUST use cnsplots; raw
-  seaborn/matplotlib for these is forbidden, and missing cnsplots is a reported
-  blocker. All figure text is Arial 7 pt — one family, verified in the PDF; colors
-  only from mature documented palettes (viridis/cividis/Okabe-Ito/ColorBrewer/
-  Nature-Cell-Science presets), never rainbow/jet/turbo or ad-hoc hexes.
-  Dumbbell (杠铃图) and lollipop (棒棒糖图) charts are forbidden — never suggest or draw
-  them. Heatmaps follow the locked house style in references/chart-types.md (square
-  cells, thin black borders, RdBu_r for z-scores, small manual inset colorbar right
-  of the matrix). Figures contain no Chinese text; filenames are Chinese. Deliver one
-  submission PDF plus one 300-dpi _预览.png review companion. Python is the only
-  backend — never plot in R; R-origin data (Seurat, DESeq2, RDS) must be exported to
-  CSV/TSV first, then plotted in Python. Not for interactive/EDA plots.
+  Submission-grade single-message scientific figures for Nature, Science, Immunity and
+  other high-impact journals, in Python. Use whenever the user asks to create, revise,
+  audit, or polish manuscript figures or journal-ready PDFs (出图/论文图/投稿图/house-style
+  heatmap). Doctrine: ONE figure = ONE message — composites and cnsplots multipanel
+  helpers forbidden. Python basic charts (bar/scatter/line/box/violin/strip/histogram/
+  KDE/regression) MUST use cnsplots; raw seaborn/matplotlib for these is a
+  reported blocker. Arial 7 pt only, ASCII labels; colors only from documented
+  palettes (viridis/cividis/Okabe-Ito/ColorBrewer/cnsplots journal presets), never
+  rainbow/jet/turbo. Dumbbell and lollipop charts forbidden. Heatmaps follow the
+  locked house style in chart-types.md. No Chinese text inside figures;
+  Chinese filenames. Deliver one submission PDF plus one 300-dpi _预览.png companion,
+  QA'd with scripts/figure_qa.py. Python-only backend — never plot in R;
+  export R-origin data to CSV/TSV first. Not for interactive/EDA plots.
 ---
 
 # Nature Figure Skill — 一图一义 · 极简 · 科学配色
@@ -38,10 +34,14 @@ serves the figure.
    chartjunk, no 3D effects, no decorative gradients, no drop shadows, no background fills,
    no unnecessary gridlines, no borders. White background only. When in doubt, delete.
 3. **Arial only, 7 pt.** Every character in every figure is **Arial at 7 pt** — one
-   family, one base size (vary only weight). Helvetica and all other fallback
+   family, one base size. Sanctioned deviations, nothing else: mathtext
+   sub/superscripts scale to 0.7 × base (`mm$^3$`), the locked heatmap house style's
+   manual colorbar may use 5.5 pt (journals accept 5 pt minimum, and a 7 pt z-score
+   bar dwarfs the matrix), and italic is allowed only for gene symbols.
+   Helvetica and all other fallback
    families are forbidden: lock `cns.settings.font_sans_serif = ["Arial"]` before
-   `cns.figure()`, and keep in-figure text ASCII-only (superscripts via mathtext,
-   e.g. `mm$^3$`) so no other family is ever substituted. Verify the exported PDF
+   `cns.figure()`, and keep in-figure text ASCII-only (superscripts via mathtext)
+   so no other family is ever substituted. Verify the exported PDF
    embeds Arial-only fonts before delivery.
 4. **No Chinese inside figures.** All in-figure text (axis labels, ticks, legends,
    annotations, panel titles) must be English. **Saved filenames are in Chinese** —
@@ -90,20 +90,27 @@ and export settings from `references/api.md`. Canonical pattern:
 import matplotlib.pyplot as plt
 import cnsplots as cns
 
-# lock BEFORE figure(): Arial-only family; never crop the journal canvas
+# lock BEFORE figure(): Arial-only family; never crop the journal canvas;
+# cnsplots defaults violate the doctrine (transparent background, 0.5 pt axes)
 cns.settings.font_sans_serif = ["Arial"]
-cns.settings.savefig_bbox = "standard"
-cns.figure(width=252, height=170)          # 252 px / 72 = 3.5 in = 88.9 mm (Nature)
+cns.settings.savefig_bbox = "standard"          # "tight" (the default) crops the canvas
+cns.settings.savefig_transparent = False        # default True — force pure white background
+cns.settings.axes_linewidth = 0.7               # default 0.5 — the mandate is 0.7 pt
+cns.figure(width=252, height=170)               # 252 px / 72 = 3.5 in = 88.9 mm (Nature)
 cns.settings.pvalue_fontsize = 7
 plt.rcParams.update({"font.size": 7, "axes.labelsize": 7,
-                     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7})
+                     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
+                     "xtick.major.width": 0.7, "ytick.major.width": 0.7})
 
 ax = cns.barplot(data=df, x="group", y="value",
                  hue="group", legend=False,
                  palette=["#B0B0B0", "#0072B2"],   # approved sets: neutral gray + Okabe-Ito blue
-                 pairs=[("Control", "Treated")])   # pairs= alone runs Welch's t-test
+                 pairs=[("Control", "Treated")])   # pairs= bracket; barplot runs Welch's t-test
 cns.savefig("各组指标比较.pdf")                     # PDF with editable text
-verify_figure_pdf("各组指标比较.pdf", width_mm=88.9)  # mandatory pre-delivery check
+
+# then QA from the skill directory — single-source checks, do not re-implement:
+#   python scripts/figure_qa.py verify 各组指标比较.pdf --width-mm 88.9
+#   python scripts/figure_qa.py preview 各组指标比较.pdf
 ```
 
 - **No silent fallback.** If `cnsplots` is not installed, stop, report the missing
@@ -111,11 +118,13 @@ verify_figure_pdf("各组指标比较.pdf", width_mm=88.9)  # mandatory pre-deli
   install — do not substitute seaborn/matplotlib for a mandated chart type.
 - **Font and size are not optional.** `font_sans_serif = ["Arial"]` goes before
   `cns.figure()`; every text element ends up Arial 7 pt; the exported PDF must embed
-  Arial-only fonts. `verify_figure_pdf` (in `references/api.md`) enforces this.
-- **Built-in statistics:** pass `pairs=[("A", "B")]` and cnsplots runs Welch's t-test
-  and draws the bracket itself — never hand-annotate p-values or brackets (`test=`/
-  `p_adjust=` kwargs are not accepted by `barplot`/`boxplot` in cnsplots 0.6.0 and
-  crash). Exact test, n, and error-bar definitions still go in the caption.
+  Arial-only fonts. `scripts/figure_qa.py verify` enforces this.
+- **Built-in statistics:** pass `pairs=[("A", "B")]` and cnsplots draws the bracket
+  itself — never hand-annotate p-values or brackets. The test depends on the
+  function (verified in 0.6.0 source): `barplot` runs **Welch's t-test**;
+  `boxplot`/`violinplot` run **Mann-Whitney U**; `stripplot` runs no test. Name
+  the actual test in the caption, with n and error-bar definitions. (`test=`/
+  `p_adjust=` kwargs do not exist on these functions in 0.6.0 and crash.)
 - **Allowed fine-tuning:** the axes cnsplots returns are standard matplotlib — axis
   labels, limits, aspect, `adjustText` label repel are fine; re-drawing the chart with
   raw seaborn/matplotlib primitives is not.
@@ -182,18 +191,22 @@ import cnsplots as cns
 
 cns.settings.font_sans_serif = ["Arial"]   # before figure(): Arial-only
 cns.settings.savefig_bbox = "standard"     # keep the exact journal canvas
+cns.settings.savefig_transparent = False   # default True — force white background
+cns.settings.axes_linewidth = 0.7          # default 0.5 — mandate is 0.7 pt
 cns.figure(width=252, height=170)          # 88.9 mm Nature single column
 plt.rcParams.update({"font.size": 7, "axes.labelsize": 7,
-                     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7})
+                     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
+                     "xtick.major.width": 0.7, "ytick.major.width": 0.7})
 cns.barplot(data=df, x="group", y="value", hue="group", legend=False,
             palette=["#B0B0B0", "#0072B2"], pairs=[("Control", "Treated")])
 cns.savefig("各组指标比较.pdf")
-verify_figure_pdf("各组指标比较.pdf", width_mm=88.9)   # mandatory pre-delivery check
-render_preview("各组指标比较.pdf")                      # <中文文件名>_预览.png, 300 dpi
+# then QA (from the skill directory — single-source checks):
+#   python scripts/figure_qa.py verify 各组指标比较.pdf --width-mm 88.9
+#   python scripts/figure_qa.py preview 各组指标比较.pdf
 ```
 
-Full settings, palette whitelist, and the `verify_figure_pdf` check:
-`references/api.md`. Chart types cnsplots does not cover (heatmap, UMAP styling, …)
+Full settings, palette whitelist, and QA workflow: `references/api.md`. Chart types
+cnsplots does not cover (heatmap, UMAP styling, …)
 keep the rcParams style block below and their established packages.
 
 ### Python (non-cnsplots charts)
@@ -226,7 +239,7 @@ mpl.rcParams.update({
 
 def save_pub(fig, chinese_filename, width_mm=89, height_mm=60):
     """Save at the exact journal size — no tight crop — then close.
-    Afterwards run verify_figure_pdf(...) and render_preview(...) (references/api.md)."""
+    Afterwards run scripts/figure_qa.py verify + preview (references/api.md)."""
     fig.set_size_inches(width_mm / 25.4, height_mm / 25.4)
     fig.savefig(f"{chinese_filename}.pdf")
     plt.close(fig)
@@ -258,3 +271,4 @@ def save_pub(fig, chinese_filename, width_mm=89, height_mm=60):
 | [references/api.md](references/api.md) | Python palette constants and helper signatures |
 | [references/chart-types.md](references/chart-types.md) | Single-chart recipes with mature packages (bar, scatter, UMAP, heatmap, ...) |
 | [references/qa-contract.md](references/qa-contract.md) | Pre-submission QA checklist |
+| [scripts/figure_qa.py](scripts/figure_qa.py) | Single-source QA: `verify` / `preview` / `audit-text` / `font.check` (CLI or import) |

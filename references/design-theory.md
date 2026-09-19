@@ -26,7 +26,9 @@ that survives must carry data. Everything else is deleted.
 | Bold emphasis (rare) | 7 pt, bold weight |
 
 One uniform size: 7 pt Arial everywhere — hierarchy comes from weight and
-placement, not from mixing sizes.
+placement, not from mixing sizes. Sanctioned deviations only: mathtext
+sub/superscripts (0.7 × base), the heatmap house style's 5.5 pt manual colorbar,
+and italic for gene symbols.
 
 ## 2) Background and ink
 

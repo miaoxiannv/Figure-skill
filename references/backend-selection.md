@@ -26,6 +26,17 @@ If a required Python package is missing: stop, report the exact blocker, provide
 the script and `pip install ...` instructions, or ask permission to install. No
 silent fallback to another package for a mandated chart type.
 
+## Missing font blocker
+
+If **Arial** is not installed on the machine that renders the figure, stop — it
+is a delivery blocker on the same level as a missing package. Check with
+`python scripts/figure_qa.py font.check`. Never substitute lookalikes
+(Liberation Sans, Helvetica clones, DejaVu Sans) — they change letterforms and
+are rejected by `figure_qa.py verify` anyway. Windows ships Arial; on Linux/HPC
+install `ttf-mscorefonts-installer` (accept the EULA) or copy a licensed
+`Arial.ttf` into `~/.fonts` and clear the matplotlib font cache
+(`~/.cache/matplotlib`) so it is picked up.
+
 ## Python stack (the only stack)
 
 - Core plotting (basic charts): **`cnsplots` — mandatory** for bar / grouped bar,

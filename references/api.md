@@ -19,26 +19,37 @@ import cnsplots as cns
 
 cns.settings.font_sans_serif = ["Arial"]   # BEFORE figure(): Arial-only family
 cns.settings.savefig_bbox = "standard"     # keep the exact journal canvas (no tight crop)
+cns.settings.savefig_transparent = False   # default True — force pure white background
+cns.settings.axes_linewidth = 0.7          # default 0.5 — the mandate is 0.7 pt
 cns.figure(width=252, height=170)          # 252 px / 72 = 3.5 in = 88.9 mm Nature single col
 cns.settings.pvalue_fontsize = 7
 cns.settings.title_fontsize = 7
 cns.settings.legend_fontsize = 7
 plt.rcParams.update({"font.size": 7, "axes.labelsize": 7,
-                     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7})
+                     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
+                     "xtick.major.width": 0.7, "ytick.major.width": 0.7})
 
 ax = cns.barplot(data=df, x="group", y="value", hue="group", legend=False,
                  palette=["#B0B0B0", "#0072B2"],      # approved palettes only
-                 pairs=[("Control", "Treated")])      # built-in Welch's t-test bracket
+                 pairs=[("Control", "Treated")])      # barplot pairs= -> Welch's t-test
 cns.savefig("各组指标比较.pdf")
-verify_figure_pdf("各组指标比较.pdf", width_mm=88.9)   # mandatory, see below
 ```
 
 Verified cnsplots 0.6.0 behaviour (write code against these facts):
 
-- `pairs=[("A", "B")]` alone runs Welch's t-test and draws the bracket. The
-  `test=` / `p_adjust=` kwargs do NOT exist on `barplot`/`boxplot` in 0.6.0 —
-  passing them crashes. Never hand-draw brackets or hand-compute on-figure p-values;
+- **Defaults violate the doctrine — override them every time.**
+  `savefig_transparent` defaults to **True** (transparent background, not white),
+  `savefig_bbox` to `"tight"` (crops 88.9 mm → ~79.6 mm), and `axes_linewidth`
+  to 0.5. Every script must set `savefig_transparent = False`,
+  `savefig_bbox = "standard"`, and `axes_linewidth = 0.7`, plus tick widths
+  0.7 via rcParams.
+- `pairs=[("A", "B")]` draws the significance bracket itself; the test depends
+  on the function — `barplot` runs **Welch's t-test**, `boxplot`/`violinplot`
+  run **Mann-Whitney U**, `stripplot` runs none. Name the actual test in the
+  caption. Never hand-draw brackets or hand-compute on-figure p-values;
   exact test, n, and error-bar definitions still go in the external caption.
+  The `test=` / `p_adjust=` kwargs do NOT exist on these functions in 0.6.0 —
+  passing them crashes.
 - `**kwargs` forward to seaborn — use `errorbar=("sd", 1)`, `capsize=0.12`,
   `palette=`, and pass `hue=<x>` + `legend=False` whenever you set `palette`
   (seaborn deprecation otherwise).
@@ -92,55 +103,35 @@ Never export with `bbox_inches="tight"` for journal figures: it silently crops t
 canvas below the column width (88.9 mm → ~79.6 mm in practice). Size the canvas
 exactly and use `fig.tight_layout()` for margins.
 
-## Review preview PNG (mandatory companion, after verification)
+## QA — scripts/figure_qa.py (single source, mandatory)
 
-After `verify_figure_pdf` passes, render the user's review companion from the
-finished PDF — one PNG per figure, named `<中文文件名>_预览.png`, 300 dpi. Requires
-`pip install pymupdf`.
+All pre-delivery checks live in **one** canonical script at the skill root —
+verify, preview, text-size audit, font availability. Run the CLI from the skill
+directory (or import the functions); **never copy-paste variants** into plotting
+scripts — divergent copies are how the font check silently weakened once before.
 
-```python
-import pymupdf
-
-def render_preview(pdf_path):
-    """Render the one-page figure PDF to a 300 dpi <name>_预览.png next to it."""
-    doc = pymupdf.open(pdf_path)
-    assert len(doc) == 1, f"expected 1 page, got {len(doc)}"
-    pix = doc[0].get_pixmap(dpi=300)
-    out = pdf_path.removesuffix(".pdf") + "_预览.png"
-    pix.save(out)
-    return out
+```bash
+python scripts/figure_qa.py verify 各组指标比较.pdf --width-mm 88.9
+python scripts/figure_qa.py preview 各组指标比较.pdf        # <中文名>_预览.png, 300 dpi
+python scripts/figure_qa.py audit-text 各组指标比较.pdf      # 7 pt content-stream Tf scan
+python scripts/figure_qa.py font.check                      # Arial availability blocker check
 ```
 
-The PNG is for the user's review only; the PDF is the submission file. Do not
-produce any other image files.
+What each check enforces (all four must pass before delivery; a failure is a
+delivery blocker — fix and re-export, never hand over an unverified figure):
 
-## Mandatory pre-delivery verification (Python)
-
-Run on every exported PDF before delivering. Requires `pip install pymupdf` (the
-same dependency the preview renderer uses — no separate install).
-
-```python
-import pymupdf
-
-def verify_figure_pdf(path, width_mm=88.9):
-    """Assert: one page, Arial-only fonts at ANY nesting depth, exact journal width."""
-    doc = pymupdf.open(path)
-    assert doc.page_count == 1, f"expected 1 page, got {doc.page_count}"
-    page = doc[0]
-    w_mm, h_mm = page.rect.width / 72 * 25.4, page.rect.height / 72 * 25.4
-    fonts = {f[3] for f in page.get_fonts(full=True)}   # f[3] = BaseFont name
-    non_arial = {f for f in fonts if "Arial" not in f}
-    assert not non_arial, f"non-Arial fonts embedded: {non_arial} — fix font lock"
-    assert abs(w_mm - width_mm) < 0.3, f"width {w_mm:.1f} mm != {width_mm} mm"
-    print(f"OK: {w_mm:.1f} x {h_mm:.1f} mm, fonts = {sorted(fonts)}")
-```
-
-The font scan walks the whole page resource tree — including fonts nested inside
-Form XObjects, which a naive page-level `/Resources/Font` read (e.g. a plain
-pypdf one-liner) silently misses. Do not downgrade it to a shallower check.
-
-A failure here is a delivery blocker: fix the font lock / canvas size and re-export —
-never hand the figure to the user unverified.
+- `verify` — one page; Arial-only fonts at ANY nesting depth (the scan walks the
+  whole page resource tree, including fonts nested inside Form XObjects, which a
+  page-level `/Resources/Font` read silently misses — do not downgrade it); exact
+  canvas width (±0.3 mm).
+- `preview` — renders the review companion `<中文文件名>_预览.png` (300 dpi, pymupdf)
+  from the finished PDF. The PNG is for the user's review; the PDF is what gets
+  submitted. Never produce any other image file.
+- `audit-text` — every content-stream `Tf` font-size must be 7 pt, the mathtext
+  scale (0.7 × 7 = 4.9 pt), or — only in the heatmap house style — the 5.5 pt
+  colorbar. Also fails if text was outlined (no `Tf` commands at all).
+- `font.check` — Arial must resolve to a real Arial file. Lookalikes
+  (Liberation Sans, Helvetica clones, DejaVu) are forbidden and rejected anyway.
 
 ---
 
@@ -270,4 +261,5 @@ def luminance_text_color(hex_color):
 5. Charts and statistics from mature packages only; Python basic charts via cnsplots.
 6. Colors from the documented palette whitelist only; colormaps match the data class;
    no rainbow/jet/turbo; colorbar for continuous.
-7. Run `verify_figure_pdf` before delivery — a failed check is a delivery blocker.
+7. Run `scripts/figure_qa.py verify` (+ `preview`, `audit-text`) before delivery — a
+   failed check is a delivery blocker.

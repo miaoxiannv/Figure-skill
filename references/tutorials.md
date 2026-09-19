@@ -19,25 +19,33 @@ df = pd.read_csv("tumour_weight.csv")          # columns: group, weight
 
 cns.settings.font_sans_serif = ["Arial"]       # Arial-only, before figure()
 cns.settings.savefig_bbox = "standard"         # keep the 88.9 mm canvas
+cns.settings.savefig_transparent = False       # default True — white background
+cns.settings.axes_linewidth = 0.7              # default 0.5 — mandate is 0.7 pt
 cns.figure(width=252, height=170)              # Nature single column
 cns.settings.pvalue_fontsize = 7
 plt.rcParams.update({"font.size": 7, "axes.labelsize": 7,
-                     "xtick.labelsize": 7, "ytick.labelsize": 7})
+                     "xtick.labelsize": 7, "ytick.labelsize": 7,
+                     "xtick.major.width": 0.7, "ytick.major.width": 0.7})
 
 ax = cns.barplot(data=df, x="group", y="weight", hue="group", legend=False,
                  order=["Vehicle", "Compound A"],
                  palette=["#B0B0B0", "#0072B2"],      # gray control + Okabe-Ito blue
                  errorbar=("sd", 1), capsize=0.12,
-                 pairs=[("Vehicle", "Compound A")])   # cnsplots runs Welch's t-test
+                 pairs=[("Vehicle", "Compound A")])   # barplot pairs= runs Welch's t-test
 ax.set_xlabel(""); ax.set_ylabel("Tumour weight (g)")
 plt.gcf().tight_layout()
 cns.savefig("化合物A对肿瘤重量的影响.pdf")     # PDF with editable text
-verify_figure_pdf("化合物A对肿瘤重量的影响.pdf", width_mm=88.9)
-render_preview("化合物A对肿瘤重量的影响.pdf")   # 化合物A对肿瘤重量的影响_预览.png
 ```
 
-Caption records: Welch's t-test, t, p, n per group, bars = mean ± SD (significance
-marks come from cnsplots `pairs=`, never hand-drawn; exact stats live in the caption).
+Caption records: Welch's t-test (what `barplot` `pairs=` runs — for
+`violinplot`/`boxplot` it would be Mann-Whitney U), t, p, n per group, bars =
+mean ± SD. Then QA from the skill directory — single-source checks:
+
+```bash
+python scripts/figure_qa.py verify 化合物A对肿瘤重量的影响.pdf --width-mm 88.9
+python scripts/figure_qa.py preview 化合物A对肿瘤重量的影响.pdf
+python scripts/figure_qa.py audit-text 化合物A对肿瘤重量的影响.pdf
+```
 
 ## Tutorial 2: UMAP colored by continuous expression (Python)
 
@@ -62,16 +70,18 @@ sc.pp.neighbors(adata, n_neighbors=15)
 sc.tl.umap(adata)
 fig = sc.pl.umap(adata, color="GENEX", cmap="viridis", show=False).figure
 # exact single-column canvas — no tight crop
-fig.set_size_inches(89/25.4, 70/25.4)
+fig.set_size_inches(88.9 / 25.4, 70 / 25.4)   # 252 px canvas = 88.9 mm
 fig.savefig("基因X在UMAP上的表达分布.pdf")
 plt.close(fig)
-verify_figure_pdf("基因X在UMAP上的表达分布.pdf", width_mm=88.9)
-render_preview("基因X在UMAP上的表达分布.pdf")   # 基因X在UMAP上的表达分布_预览.png
+
+# QA from the skill directory:
+#   python scripts/figure_qa.py verify 基因X在UMAP上的表达分布.pdf --width-mm 88.9
+#   python scripts/figure_qa.py preview 基因X在UMAP上的表达分布.pdf
 ```
 
 Sequential viridis + labeled colorbar; embedding computed by scanpy, never by hand.
 scanpy resets rcParams on import order changes — re-apply the style block if fonts
-come out wrong, and always confirm Arial-only via `verify_figure_pdf`.
+come out wrong, and always confirm Arial-only via `scripts/figure_qa.py verify`.
 
 ## Tutorial 3: Diverging z-score heatmap (Python, house style)
 
@@ -82,6 +92,15 @@ cells, thin black borders, RdBu_r, manual inset colorbar right of the matrix):
 
 ```python
 import matplotlib as mpl
+
+mpl.rcParams.update({                       # mandatory style block (references/api.md) —
+    "font.family": "sans-serif", "font.sans-serif": ["Arial"],   # without it the export
+    "mathtext.fontset": "custom", "mathtext.rm": "Arial",        # embeds DejaVu Type 3
+    "mathtext.it": "Arial:italic", "mathtext.bf": "Arial",       # and fails figure_qa
+    "pdf.fonttype": 42, "font.size": 7,
+    "axes.labelsize": 7, "xtick.labelsize": 7, "ytick.labelsize": 7,
+    "legend.fontsize": 7,
+})
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import pandas as pd
@@ -113,10 +132,12 @@ cb_ax.set_ylabel("Row z-score", fontsize=5.5, labelpad=1.5)
 fig.tight_layout()
 fig.savefig("线粒体基因Z分数热图.pdf")
 plt.close(fig)
-# house-style canvas width follows the column count — verify against its own size
-verify_figure_pdf("线粒体基因Z分数热图.pdf",
-                  width_mm=round((1.55 + Z.shape[1] * 0.125) * 25.4, 1))
-render_preview("线粒体基因Z分数热图.pdf")   # 线粒体基因Z分数热图_预览.png
+
+# QA from the skill directory — the house-style canvas width follows the column
+# count, so verify against the canvas's own size, not the journal column:
+#   python scripts/figure_qa.py verify 线粒体基因Z分数热图.pdf \
+#       --width-mm $(python -c "import pandas as pd; Z = pd.read_csv('z_scores.csv', index_col=0); print(round((1.55 + Z.shape[1] * 0.125) * 25.4, 1))")
+#   python scripts/figure_qa.py preview 线粒体基因Z分数热图.pdf
 ```
 
 Diverging map justified: zero (cohort mean) is a meaningful center.

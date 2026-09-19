@@ -24,8 +24,9 @@ and other high-impact journals, in Python.
 6. **Language policy** — English inside the figure; **Chinese filenames** for saved
    PDFs (e.g. `化合物A对肿瘤重量的影响.pdf`).
 7. **PDF for submission, PNG preview for review** — one PDF per figure, exact journal
-   canvas (no tight crop), editable text (`pdf.fonttype = 42`); run `verify_figure_pdf`
-   before delivery, then render one `<中文文件名>_预览.png` (300 dpi) review companion.
+   canvas (no tight crop), editable text (`pdf.fonttype = 42`); QA with
+   `scripts/figure_qa.py` (`verify` + `preview` + `audit-text`), which renders one
+   `<中文文件名>_预览.png` (300 dpi) review companion.
 8. **Python-only backend** — never plot in R; R-origin data (Seurat, DESeq2, RDS)
    must be exported to CSV/TSV first, then plotted in Python.
 
@@ -48,6 +49,8 @@ nature-figure-pdf/
 ├── SKILL.md                     ← skill trigger & doctrine
 ├── README.md                    ← this file
 ├── evals/evals.json             ← behavior evals
+├── scripts/
+│   └── figure_qa.py             ← single-source QA: verify / preview / audit-text / font.check
 └── references/
     ├── figure-contract.md       ← one-message contract template
     ├── journal-styles.md        ← Nature / Science / Immunity specs
@@ -68,15 +71,20 @@ import cnsplots as cns
 
 cns.settings.font_sans_serif = ["Arial"]   # Arial-only, before figure()
 cns.settings.savefig_bbox = "standard"     # keep the exact journal canvas
+cns.settings.savefig_transparent = False   # default True — force white background
+cns.settings.axes_linewidth = 0.7          # default 0.5 — mandate is 0.7 pt
 cns.figure(width=252, height=170)          # 252 px = 88.9 mm Nature single column
 cns.settings.pvalue_fontsize = 7
 plt.rcParams.update({"font.size": 7, "axes.labelsize": 7,
-                     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7})
+                     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
+                     "xtick.major.width": 0.7, "ytick.major.width": 0.7})
 cns.barplot(data=df, x="group", y="value", hue="group", legend=False,
             palette=["#B0B0B0", "#0072B2"], pairs=[("Control", "Treated")])
 cns.savefig("各组指标比较.pdf")
-verify_figure_pdf("各组指标比较.pdf", width_mm=88.9)   # references/api.md
-render_preview("各组指标比较.pdf")                      # 各组指标比较_预览.png (300 dpi)
+
+# then QA (from the skill directory):
+#   python scripts/figure_qa.py verify 各组指标比较.pdf --width-mm 88.9
+#   python scripts/figure_qa.py preview 各组指标比较.pdf
 ```
 
 Chart types cnsplots does not cover (heatmap, UMAP styling, …) use the rcParams style
@@ -105,7 +113,7 @@ mpl.rcParams.update({
 fig.set_size_inches(89 / 25.4, 60 / 25.4)      # exact journal canvas, no tight crop
 fig.savefig("中文描述性文件名.pdf")
 plt.close(fig)
-# then run verify_figure_pdf(...) + render_preview(...)  — references/api.md
+# then run scripts/figure_qa.py verify + preview  — references/api.md
 ```
 
 ## Scope

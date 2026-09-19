@@ -152,7 +152,7 @@
     {
       "id": "pdf-plus-preview-png-delivery",
       "prompt": "用 Python 画一张 Nature 单栏宽的组间比较小提琴图，数据模拟即可。",
-      "expected_output": "The assistant delivers exactly two files per figure: the submission PDF (Chinese filename, exact 89 mm canvas, editable text, verify_figure_pdf passed) plus one review companion <中文文件名>_预览.png rendered from the PDF at 300 dpi (pymupdf) — and no other image files.",
+      "expected_output": "The assistant delivers exactly two files per figure: the submission PDF (Chinese filename, exact 252 px / 88.9 mm canvas, editable text, figure_qa.py verify passed) plus one review companion <中文文件名>_预览.png rendered from the PDF at 300 dpi (pymupdf) — and no other image files.",
       "assertions": [
         {
           "name": "preview_png_rendered",
@@ -168,7 +168,7 @@
     {
       "id": "arial-7pt-and-palette-whitelist",
       "prompt": "用 Python 和 cnsplots 画一张三种细胞亚群比例比较的柱状图，投 Nature。",
-      "expected_output": "The plotting code locks the font family to Arial only (cns.settings.font_sans_serif = ['Arial'] before cns.figure, or font.sans-serif=['Arial']), sets every text element to 7 pt, sizes the canvas at 252 px width (89 mm Nature single column) with savefig_bbox='standard', takes colors from a documented mature palette (cns.palettes('Nature'/'Cell'/'Science'/Ecotyper/ColorBrewer) or Okabe-Ito constants) instead of ad-hoc hexes, and runs a verification step (verify_figure_pdf or an equivalent PDF-font check) asserting Arial-only embedded fonts and the exact physical width.",
+      "expected_output": "The plotting code locks the font family to Arial only (cns.settings.font_sans_serif = ['Arial'] before cns.figure, or font.sans-serif=['Arial']), sets every text element to 7 pt, sizes the canvas at 252 px width (89 mm Nature single column) with savefig_bbox='standard', takes colors from a documented mature palette (cns.palettes('Nature'/'Cell'/'Science'/Ecotyper/ColorBrewer) or Okabe-Ito constants) instead of ad-hoc hexes, and runs a verification step (scripts/figure_qa.py verify, or an equivalent check) asserting Arial-only embedded fonts and the exact physical width.",
       "assertions": [
         {
           "name": "arial_only_font_lock",
@@ -185,6 +185,26 @@
         {
           "name": "export_verification",
           "description": "Response includes or runs an automated PDF check for Arial-only embedded fonts and exact journal width."
+        }
+      ],
+      "files": []
+    },
+    {
+      "id": "pairs-test-type-matches-function",
+      "prompt": "用 Python 画一张三组细胞因子 pSTAT5 信号强度的小提琴图，组间两两比较并在图上标注显著性。",
+      "expected_output": "The assistant draws the violin with cns.violinplot and pairs= (never hand-drawn brackets) and names the test correctly: violinplot/boxplot pairs= runs the two-sided Mann-Whitney U test in cnsplots 0.6.0, so the caption says Mann-Whitney U — writing Welch's t-test there is a failure (Welch is barplot-only). The code also overrides the doctrine-violating cnsplots defaults (savefig_transparent=True, axes_linewidth=0.5).",
+      "assertions": [
+        {
+          "name": "correct_test_named",
+          "description": "Caption/comments name Mann-Whitney U for the violinplot or boxplot pairs= marks; naming Welch's t-test there is a failure."
+        },
+        {
+          "name": "no_hand_drawn_brackets",
+          "description": "Significance marks come from cnsplots pairs=, not manual annotations."
+        },
+        {
+          "name": "doctrine_defaults_overridden",
+          "description": "Code sets savefig_transparent=False and axes_linewidth=0.7 (cnsplots defaults violate the white-background / 0.7 pt mandate)."
         }
       ],
       "files": []

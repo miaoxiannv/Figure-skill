@@ -23,10 +23,10 @@ guide for the target journal before submission.
 | Filename | Chinese, descriptive (e.g. `各组肿瘤重量比较.pdf`) |
 | In-figure language | English only; zero Chinese characters inside the figure |
 | Font | Arial only — embedded font list contains zero non-Arial families; no serif anywhere |
-| Text size | 7 pt uniform (labels, ticks, legend, annotations); verified in the PDF |
-| Final size | Exact journal column width (Nature 89 mm / Science 55 mm / Immunity 85 mm); height within journal limit; no tight-crop shrinkage |
-| Automated export check | `verify_figure_pdf` passed: one page, Arial-only fonts at any nesting depth (incl. Form XObjects), exact width — a failed check blocks delivery |
-| Editable text | `pdf.fonttype = 42`; text selectable, not outlined |
+| Text size | 7 pt uniform (labels, ticks, legend, annotations); 5.5 pt allowed only in the heatmap house style colorbar; verified via `scripts/figure_qa.py audit-text` |
+| Final size | Exact journal column width (Nature 89 mm / Science 55 mm / Immunity 85 mm); height within journal limit; no tight-crop shrinkage. Exception: the heatmap house style follows the matrix size — verify against the canvas's own width |
+| Automated export check | `python scripts/figure_qa.py verify` passed: one page, Arial-only fonts at any nesting depth (incl. Form XObjects), exact width — a failed check blocks delivery |
+| Editable text | `pdf.fonttype = 42`; text selectable, not outlined — `audit-text` fails if no `Tf` text commands exist |
 | Background | Pure white; no fills, borders, chartjunk, 3D, shadows, gradients |
 | Spines/grid | Left+bottom spines only; no gridlines unless reference-meaningful |
 | Data class match | Color map class = variable class (sequential/diverging/cyclic/categorical) |

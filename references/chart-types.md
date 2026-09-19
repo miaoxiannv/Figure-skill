@@ -7,10 +7,12 @@ forbidden; if cnsplots is missing, stop and install/report — never fall back s
 seaborn/matplotlib remain allowed for chart types cnsplots does not cover (heatmap,
 UMAP styling) and for fine-tuning the axes cnsplots returns. Every recipe saves one PDF
 with a Chinese filename; before `cns.figure(...)` lock
-`cns.settings.font_sans_serif = ["Arial"]` and `cns.settings.savefig_bbox = "standard"`,
-size the canvas in px (px = mm / 25.4 × 72; Nature single column 89 mm = 252 px),
-set every text element to 7 pt, and verify the export with `verify_figure_pdf`
-(`references/api.md`).
+`cns.settings.font_sans_serif = ["Arial"]`, `cns.settings.savefig_bbox = "standard"`,
+`cns.settings.savefig_transparent = False` (the default True gives a transparent
+background), and `cns.settings.axes_linewidth = 0.7` (the default 0.5 is too thin),
+size the canvas in px (px = floor(mm / 25.4 × 72); Nature single column 89 mm = 252 px),
+set every text element to 7 pt, and QA the export with `scripts/figure_qa.py`
+(`verify` + `preview`; see `references/api.md`).
 
 ---
 
@@ -21,27 +23,31 @@ import cnsplots as cns
 
 cns.settings.font_sans_serif = ["Arial"]
 cns.settings.savefig_bbox = "standard"
+cns.settings.savefig_transparent = False        # default True — white background
+cns.settings.axes_linewidth = 0.7               # default 0.5 — mandate is 0.7 pt
 cns.figure(width=252, height=170)                       # 88.9 mm Nature single column
 cns.barplot(data=df, x="group", y="value", hue="group", legend=False,
             palette=["#B0B0B0", "#0072B2"],             # neutral gray control + Okabe-Ito blue
             errorbar=("sd", 1), capsize=0.12,
-            pairs=[("Control", "Treated")])             # built-in Welch's t-test bracket
+            pairs=[("Control", "Treated")])             # barplot pairs= -> Welch's t-test
 cns.savefig("各组指标比较.pdf")
-verify_figure_pdf("各组指标比较.pdf", width_mm=88.9)     # mandatory check, references/api.md
 ```
 
 - Two conditions max; more conditions → simplify the question or facet into
   separate figures.
-- Significance marks come from `pairs=` (cnsplots runs Welch's t-test itself;
-  `test=`/`p_adjust=` kwargs crash on 0.6.0 `barplot`) — never hand-drawn
+- Significance marks come from `pairs=` — in `barplot` this runs **Welch's
+  t-test**; `test=`/`p_adjust=` kwargs crash on 0.6.0 — never hand-drawn
   brackets. The exact test, n per group, and error-bar meaning (SD / SEM / 95% CI)
-  still go in the caption, not the figure.
+  still go in the caption, not the figure. QA with
+  `python scripts/figure_qa.py verify 各组指标比较.pdf --width-mm 88.9` (+ `preview`).
 
 ## Box / violin / strip (distribution comparison)
 
 ```python
 cns.figure(width=252, height=170)   # 88.9 mm single column
-cns.violinplot(data=df, x="group", y="value")
+cns.violinplot(data=df, x="group", y="value", hue="group", legend=False,
+               palette=["#0072B2", "#D55E00"],
+               pairs=[("Control", "Treated")])   # violin/box pairs= -> Mann-Whitney U
 cns.savefig("各组分布比较.pdf")
 
 # small n (n < ~10 per group): strip plot instead
@@ -49,6 +55,10 @@ cns.figure(width=252, height=170)   # 88.9 mm single column
 cns.stripplot(data=df, x="group", y="value")
 cns.savefig("各组单点分布.pdf")
 ```
+
+- `pairs=` on `violinplot`/`boxplot` runs the **Mann-Whitney U test** (not
+  Welch's t-test — that is barplot only). Name Mann-Whitney U in the caption;
+  misnaming it is a statistics error. `stripplot` supports no pairs.
 
 ## Line trend (change over x)
 
@@ -87,8 +97,26 @@ z-scored rows, italic horizontal row labels, and a small manual colorbar to the
 right of the matrix (vertically upper-middle) — never matplotlib's auto colorbar
 strip, which reserves ugly whitespace.
 
+**Font lock first.** This recipe draws on a raw matplotlib/seaborn canvas (no
+`cns.figure()`), so the mandatory style block from `references/api.md` must be
+applied before plotting — without `font.sans-serif = ["Arial"]` and
+`pdf.fonttype = 42` the export embeds DejaVuSans Type 3 and fails `figure_qa.py
+verify` (verified). House-style sanctioned deviations from the 7 pt law: the
+manual colorbar may use 5.5 pt, row labels are italic (gene symbols), and the
+canvas width follows the matrix instead of the journal column — `verify` against
+the canvas's own computed size, not the column width.
+
 ```python
 import matplotlib as mpl
+
+mpl.rcParams.update({                       # mandatory style block (references/api.md)
+    "font.family": "sans-serif", "font.sans-serif": ["Arial"],
+    "mathtext.fontset": "custom", "mathtext.rm": "Arial",
+    "mathtext.it": "Arial:italic", "mathtext.bf": "Arial",
+    "pdf.fonttype": 42, "font.size": 7,
+    "axes.labelsize": 7, "xtick.labelsize": 7, "ytick.labelsize": 7,
+    "legend.fontsize": 7,
+})
 import matplotlib.colors as mcolors
 import seaborn as sns
 from matplotlib.transforms import Bbox
@@ -111,7 +139,7 @@ cb_ax = inset_axes(ax, width="100%", height="100%", loc="lower left",
                    bbox_to_anchor=anchor, bbox_transform=ax.transAxes, borderpad=0)
 cb = mpl.colorbar.ColorbarBase(cb_ax, cmap=mpl.colormaps["RdBu_r"],
                                norm=mcolors.Normalize(vmin=-2, vmax=2), ticks=[-2, 0, 2])
-cb_ax.tick_params(labelsize=5.5, length=1.4, width=0.5, pad=1.2)
+cb_ax.tick_params(labelsize=5.5, length=1.4, width=0.5, pad=1.2)  # 5.5 pt: sanctioned house-style exception
 for sp in cb_ax.spines.values():
     sp.set_linewidth(0.5)                      # inset colorbar has no .outline
 cb_ax.set_ylabel("Row z-score", fontsize=5.5, labelpad=1.5)  # set_label: no fontsize
