@@ -342,6 +342,7 @@ GO.db. The script encodes all of this.
 | Strip + ranked fill | per-gene Wald statistic | **pure RdBu 11-class ramp** (ColorBrewer, endpoints #053061 ↔ #67001F), limits = the rank window, alpha = 1 |
 | Rank panel y window | `rank_ylim = ±k` | `k = max(1.5, ceil(q97.5(abs(stat)) × 1.25, to 0.5))` — covers the central band; extreme tails zoomed out via coord_cartesian (disclose in caption) |
 | Colour window | `rank_fc_lim = ±k` | same window as y — visible data spans the full gradient, beyond squishes to the saturated ends |
+| x-tick step | `rankSeq = nice_step(N/4)` | adaptive ~4 intervals, snapped to 1/2/2.5/5×10^k (N=20k → 5000; N=60k → 20000; N=80k → 20000) |
 | Title | pathway name | sanctioned exception: a single-pathway GSEA plot identifies itself |
 | P values | on-figure italic (`addPval = TRUE`) | GSEA convention; numbers come from the object's own test |
 | Canvas | 89 × 76 mm, `cairo_pdf`, `family = "Arial"` | OUT stem stays ASCII; rename to Chinese in the shell |

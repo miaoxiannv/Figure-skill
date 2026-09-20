@@ -27,6 +27,7 @@ de <- de[!duplicated(toupper(de$gene_name)), ]
 ranks <- de$stat
 names(ranks) <- toupper(de$gene_name)
 ranks <- sort(ranks, decreasing = TRUE)
+N <- length(ranks)
 
 ## term2gene from GMT ------------------------------------------------------
 lines <- readLines(SRC_GMT)
@@ -49,6 +50,16 @@ if (length(idx) == 0)
                                              max.distance = 0.2)], 3), collapse = " | "))
 TERM_ID <- ego@result$ID[idx]
 
+## adaptive x-tick step: ~4 intervals, snapped to 1/2/2.5/5 x 10^k --------
+## (N=20k -> 5000; N=60k -> 20000; N=80k -> 20000)
+nice_step <- function(x) {
+  mag <- 10^floor(log10(x))
+  m <- x / mag
+  step <- if (m <= 1) 1 else if (m <= 2) 2 else if (m <= 2.5) 2.5 else if (m <= 5) 5 else 10
+  step * mag
+}
+rankSeq <- nice_step(N / 4)
+
 ## locked style: y/colour window from the 97.5% quantile ------------------
 ## k = max(1.5, ceil(q97.5 * 1.25, to 0.5)) — covers the central band while
 ## the coord_cartesian zoom keeps extreme tails out of the panel (disclose).
@@ -63,7 +74,7 @@ p <- gseaNb(object    = ego,
             rank_fc_lim = c(-k, k),
             curveCol  = c("#7A2A00", "#D55E00", "#F0A57C"),  # 单色明度阶梯 (vermillion)
             lineSize  = 1.2,
-            rankSeq   = 20000,
+            rankSeq   = rankSeq,
             base_size = 7)
 p <- p + ggplot2::theme(text = ggplot2::element_text(family = "Arial"))
 
