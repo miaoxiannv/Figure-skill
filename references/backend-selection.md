@@ -5,6 +5,12 @@ happen in Python (matplotlib / seaborn / cnsplots / scanpy). Do not offer R, do 
 ask "Python or R?", and do not draw any figure in R — even when the user's data or
 statistics come from R pipelines (DESeq2, Seurat, limma, survival models).
 
+**Single sanctioned exception:** the GSEA running-enrichment curve is rendered in
+R via **GseaVis** (no Python package draws it to standard — surveyed 2026-09).
+Everything else about the figure (data prep, QA, preview naming, delivery) stays
+Python; see `references/chart-types.md`, section "GSEA running-enrichment plot",
+and `scripts/install_gseavis.R` / `scripts/render_gseavis.R`.
+
 ## Handling R-origin data
 
 R-origin inputs are welcome — as data, not as a plotting backend:

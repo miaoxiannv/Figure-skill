@@ -78,7 +78,9 @@ ComplexHeatmap, even when the data or statistics come from an R pipeline. Export
 R-origin data (Seurat objects, DESeq2 tables, RDS) to CSV/TSV first, then plot in
 Python from the exported file. If a Python package is missing, stop, report the
 blocker, and offer the script plus install commands. See
-`references/backend-selection.md`.
+`references/backend-selection.md`. Single sanctioned exception: the GSEA
+running-enrichment curve is rendered in R via GseaVis (`scripts/render_gseavis.R`) —
+nothing else leaves Python.
 
 ## cnsplots gate (blocking, Python basic charts)
 
@@ -250,8 +252,8 @@ def save_pub(fig, chinese_filename, width_mm=89, height_mm=60):
 
 - Single scientific figures for Nature, Science, Immunity, Cell, or similar venues.
 - Bar charts, scatter plots, UMAP/t-SNE embeddings, heatmaps, line trends, distributions,
-  volcano plots, forest plots, GO/KEGG enrichment dotplots, GO gene-concept networks
-  (cnetplot style) — one chart type per file.
+  volcano plots, forest plots, GO/KEGG enrichment dotplots, GSEA running-enrichment
+  curves, GO gene-concept networks (cnetplot style) — one chart type per file.
 - Requests to audit or simplify an existing figure for journal submission.
 
 ## When NOT to load
@@ -273,4 +275,6 @@ def save_pub(fig, chinese_filename, width_mm=89, height_mm=60):
 | [references/api.md](references/api.md) | Python palette constants and helper signatures |
 | [references/chart-types.md](references/chart-types.md) | Single-chart recipes with mature packages (bar, scatter, UMAP, heatmap, ...) |
 | [references/qa-contract.md](references/qa-contract.md) | Pre-submission QA checklist |
+| [references/color-scheme-design.md](references/color-scheme-design.md) | 配色方案设计: 主/辅/强调 roles + hue-wheel angle formulas |
 | [scripts/figure_qa.py](scripts/figure_qa.py) | Single-source QA: `verify` / `preview` / `audit-text` / `font.check` (CLI or import) |
+| [scripts/render_gseavis.R](scripts/render_gseavis.R) + [scripts/install_gseavis.R](scripts/install_gseavis.R) | GSEA running-enrichment curve (the sanctioned R render) + one-time patched GseaVis setup |

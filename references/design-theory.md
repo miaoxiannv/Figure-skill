@@ -54,7 +54,9 @@ and italic for gene symbols.
 
 ## 4) Color
 
-Color follows `references/color-maps.md` in full. Summary:
+Color follows `references/color-maps.md` (which palettes are allowed) and
+`references/color-scheme-design.md` (how to organize them: 主/辅/强调 roles,
+hue-wheel angle formulas, single-hue gradient rule). Summary:
 
 - Classify the variable first: sequential / diverging / cyclic / categorical.
 - Perceptually uniform palettes only (viridis family, Crameri, cmocean,

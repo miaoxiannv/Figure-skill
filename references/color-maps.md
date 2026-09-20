@@ -2,7 +2,9 @@
 
 Treat color as a quantitative axis, not decoration. Preserve the structure of the data,
 make the mapping interpretable, and keep it readable under common color-vision
-deficiencies (CVD) and grayscale reproduction.
+deficiencies (CVD) and grayscale reproduction. For organizing palettes into a
+figure-level scheme (主/辅/强调 roles, hue-wheel angles), see
+`references/color-scheme-design.md`.
 
 ## Workflow
 

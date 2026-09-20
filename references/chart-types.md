@@ -310,6 +310,59 @@ Single stacked bar or 100% bar via the cnsplots stacked-bar function
 (angle decoding is weak); use only when composition with very few parts is the
 entire message.
 
+## GSEA running-enrichment plot (GseaVis, R render)
+
+**Standard name:** GSEA running-enrichment plot (enrichplot::gseaplot2 family).
+The single message: **one gene set's enrichment score sweeps up through the
+ranked list and peaks at the leading edge.** Use for visualizing a single
+pathway's prerank-GSEA result (gseapy/fgsea/clusterProfiler output).
+
+**The one sanctioned R render.** No Python package draws this curve well
+(gseapy's plots are the ceiling — surveyed 2026-09); the field standard is the
+R package **GseaVis**. Everything else in the figure stays Python. Render via
+`scripts/render_gseavis.R` (single source — do not hand-roll); set up R once
+with `scripts/install_gseavis.R`, which installs GseaVis with three local
+patches for upstream bugs:
+
+| Patch | Upstream bug | Fix |
+|---|---|---|
+| P1 | DOSE ≥ 4.6 declares `get_organism` as an export but never defines it — GseaVis crashes at load | lazy shim in `00-funcs-from-others.R` |
+| P2 | rank panel's unparenthesized `if/else` scale swallowed the rest of the ggplot chain | parenthesized + new `rank_ylim` / `rank_fc_lim` parameters |
+| P3 | strip/fill gradient auto-limits took ±30 extremes, washing the mid-band to pastel | `rank_fc_lim` windows the colour scale |
+
+Install gotchas: keep every path ASCII (Chinese usernames get mangled inside
+R's env handling); install sequentially — parallel source installs race on
+GO.db. The script encodes all of this.
+
+### Style spec (locked)
+
+| Element | Encoding | Rule |
+|---|---|---|
+| ES curve | single accent element | **monochrome lightness ramp** of one hue: `#7A2A00 → #D55E00 → #F0A57C` (vermillion), lw 1.2 — never a cross-hue RGB gradient (references/color-scheme-design.md rule 1) |
+| Strip + ranked fill | per-gene Wald statistic | **pure RdBu 11-class ramp** (ColorBrewer, endpoints #053061 ↔ #67001F), limits = the rank window, alpha = 1 |
+| Rank panel y window | `rank_ylim = ±k` | `k = max(1.5, ceil(q97.5(abs(stat)) × 1.25, to 0.5))` — covers the central band; extreme tails zoomed out via coord_cartesian (disclose in caption) |
+| Colour window | `rank_fc_lim = ±k` | same window as y — visible data spans the full gradient, beyond squishes to the saturated ends |
+| Title | pathway name | sanctioned exception: a single-pathway GSEA plot identifies itself |
+| P values | on-figure italic (`addPval = TRUE`) | GSEA convention; numbers come from the object's own test |
+| Canvas | 89 × 76 mm, `cairo_pdf`, `family = "Arial"` | OUT stem stays ASCII; rename to Chinese in the shell |
+
+### Usage
+
+```r
+# edit CONFIG in scripts/render_gseavis.R: SRC_DE, SRC_GMT, SRC_GSEA, TERM, OUT
+Rscript render_gseavis.R
+# then rename OUT.pdf -> <中文描述>.pdf and QA:
+#   python scripts/figure_qa.py verify <中文名>.pdf --width-mm 88.9
+#   python scripts/figure_qa.py preview <中文名>.pdf
+```
+
+**Caption must state:** rank metric provenance (e.g. DESeq2 Wald statistic),
+gene-set source and size, hits / leading-edge count, ES / NES / p / FDR (from
+the object's own test), and the rank window ±k with the beyond-window tail
+count.
+
+---
+
 ## GO enrichment dotplot (Immunity house style)
 
 **Standard name:** GO/KEGG enrichment dotplot (clusterProfiler `dotPlot` family,

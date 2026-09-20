@@ -268,6 +268,26 @@
         }
       ],
       "files": []
+    },
+    {
+      "id": "gsea-gseavis-recipe",
+      "prompt": "把 Cytoplasmic Translation 这条通路的 GSEA 结果画成运行富集打分图（prerank 结果和 DESeq2 全表在这里）。",
+      "expected_output": "The assistant renders via the sanctioned R path: scripts/render_gseavis.R (clusterProfiler::GSEA -> GseaVis::gseaNb) with the locked style — monochrome vermillion lightness-ramp curve (no cross-hue RGB gradient), pure RdBu 11-class strip/fill with windowed limits, rank panel y window ±k from the 97.5% quantile rule, 89 mm cairo_pdf Arial canvas — then renames the ASCII output to a Chinese filename and runs figure_qa.py verify + preview. Offering gseapy default plots or an unpatched GseaVis install is a failure.",
+      "assertions": [
+        {
+          "name": "sanctioned_r_path",
+          "description": "Render uses scripts/render_gseavis.R (clusterProfiler -> gseaNb); gseapy plots or hand-rolled matplotlib GSEA curves are failures."
+        },
+        {
+          "name": "monochrome_curve_and_pure_rdbu",
+          "description": "Curve is a single-hue vermillion lightness ramp; strip/fill use the pure RdBu 11-class ramp with windowed limits and alpha 1."
+        },
+        {
+          "name": "windowed_rank_panels",
+          "description": "rank_ylim/rank_fc_lim follow the 97.5%-quantile rule and the cap/window is disclosed in the caption."
+        }
+      ],
+      "files": []
     }
   ]
 }

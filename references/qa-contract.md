@@ -29,6 +29,7 @@ guide for the target journal before submission.
 | Editable text | `pdf.fonttype = 42`; text selectable, not outlined — `audit-text` fails if no `Tf` text commands exist |
 | Background | Pure white; no fills, borders, chartjunk, 3D, shadows, gradients |
 | Spines/grid | Left+bottom spines only; no gridlines unless reference-meaningful |
+| Color scheme roles | 主/辅/强调 framework followed (references/color-scheme-design.md); gradients never interpolate across distant hues — single-element curves use one-hue lightness ramps |
 | Data class match | Color map class = variable class (sequential/diverging/cyclic/categorical) |
 | Palette provenance | Named palette from the whitelist (viridis/cividis/Crameri/cmocean/ColorBrewer/Okabe-Ito/cnsplots Nature-Cell-Science-Ecotyper); zero ad-hoc hexes |
 | Forbidden maps | No rainbow/jet/turbo; no red-green sole encoding |

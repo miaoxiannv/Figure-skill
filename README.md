@@ -50,15 +50,18 @@ nature-figure-pdf/
 ├── README.md                    ← this file
 ├── evals/evals.json             ← behavior evals
 ├── scripts/
-│   └── figure_qa.py             ← single-source QA: verify / preview / audit-text / font.check
+│   ├── figure_qa.py             ← single-source QA: verify / preview / audit-text / font.check
+│   ├── render_gseavis.R         ← GSEA running-enrichment curve (the sanctioned R render)
+│   └── install_gseavis.R        ← one-time patched GseaVis setup (R)
 └── references/
     ├── figure-contract.md       ← one-message contract template
     ├── journal-styles.md        ← Nature / Science / Immunity specs
     ├── color-maps.md            ← scientific color map selection & audit
+    ├── color-scheme-design.md   ← 配色方案设计: roles + hue-wheel angle formulas
     ├── backend-selection.md     ← Python-only backend rules
     ├── design-theory.md         ← minimalism, typography, export policy
     ├── api.md                   ← Python constants & helpers
-    ├── chart-types.md           ← single-chart recipes (bar/UMAP/heatmap/...)
+    ├── chart-types.md           ← single-chart recipes (bar/UMAP/heatmap/GSEA/...)
     ├── tutorials.md             ← end-to-end walkthroughs
     └── qa-contract.md           ← pre-submission checklist
 ```
@@ -120,8 +123,8 @@ plt.close(fig)
 
 **Use for**: single scientific charts (bar, violin, scatter, line, heatmap, UMAP,
 volcano, forest, survival) targeting Nature / Science / Immunity / Cell / NeurIPS
-venues; GO/KEGG enrichment dotplots and gene-concept networks (locked house
-recipes); auditing or simplifying existing figures.
+venues; GO/KEGG enrichment dotplots, GSEA running-enrichment curves and
+gene-concept networks (locked house recipes); auditing or simplifying existing figures.
 
 **Not for**: multi-panel composite figures (forbidden by doctrine), interactive web
 plots, EDA without a publication target, Illustrator/Figma infographics.
