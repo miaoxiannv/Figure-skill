@@ -71,6 +71,18 @@ python scripts/figure_qa.py preview <figure>.pdf
 python scripts/figure_qa.py audit-text <figure>.pdf
 ```
 
+### Updates
+
+The skill folder is stateless — updating replaces only its files; the R library installed by `scripts/install_gseavis.R` lives elsewhere and is untouched. Three sync paths:
+
+| Install origin | Update command |
+|---|---|
+| Skills CLI (`npx skills add miaoxiannv/Figure-skill`) | re-run the same command |
+| `git clone` | `git -C <skill dir> pull` |
+| archive / manual copy | `python scripts/check_update.py --check` → `--update` |
+
+`VERSION` tracks the running version; releases are tagged on GitHub.
+
 ## 7. Quality assurance and reproducibility
 
 - `verify` asserts one page, Arial-only embedded fonts at any nesting depth (including Form XObjects), and exact physical width (±0.3 mm)
