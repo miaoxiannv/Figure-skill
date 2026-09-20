@@ -1,130 +1,121 @@
 # nature-figure-pdf
 
-Submission-grade **single-message scientific figures** for Nature, Science, Immunity
-and other high-impact journals, in Python.
+**A reproducible figure-generation system for submission-grade, single-message scientific figures targeting *Nature*, *Science*, *Immunity* and comparable high-impact journals.**
 
-## Core doctrine
+The system is distributed as an agent skill (Python backend, one sanctioned R render) and encodes a fixed set of typographic, statistical and colour principles as non-negotiable doctrine. Every figure is delivered as exactly one vector PDF at the exact journal canvas, accompanied by a 300-dpi PNG review companion, and passes an automated pre-delivery check before it reaches the author.
 
-1. **一图一义 (one figure, one message)** — every figure answers exactly one
-   scientific question. Multi-panel composites are forbidden; multiple points mean
-   multiple separate PDFs.
-2. **简洁第一 (simplicity first)** — white background, no chartjunk, no gridlines,
-   no borders.
-3. **Arial 7 pt** — every character is Arial at 7 pt, one family, one base size;
-   Helvetica and every other fallback family are forbidden; verify the exported PDF
-   embeds Arial-only fonts.
-4. **Scientific color maps, whitelist only** — colors come from mature documented
-   palettes (viridis/cividis/Crameri/cmocean/ColorBrewer/Okabe-Ito and cnsplots
-   Nature/Cell/Science/Ecotyper presets via `cns.palettes()`); rainbow/jet/turbo,
-   red-green sole encodings, and ad-hoc hexes are forbidden.
-5. **Mature packages only** — Python basic charts (bar, scatter, line, box, violin,
-   strip, histogram, KDE, regression) **must use [cnsplots](https://github.com/faridrashidi/cnsplots)**;
-   seaborn/matplotlib only for chart types cnsplots does not cover (heatmap, UMAP
-   styling). Statistics from scipy/statsmodels/pingouin. Never hand-rolled.
-6. **Language policy** — English inside the figure; **Chinese filenames** for saved
-   PDFs (e.g. `化合物A对肿瘤重量的影响.pdf`).
-7. **PDF for submission, PNG preview for review** — one PDF per figure, exact journal
-   canvas (no tight crop), editable text (`pdf.fonttype = 42`); QA with
-   `scripts/figure_qa.py` (`verify` + `preview` + `audit-text`), which renders one
-   `<中文文件名>_预览.png` (300 dpi) review companion.
-8. **Python-only backend** — never plot in R; R-origin data (Seurat, DESeq2, RDS)
-   must be exported to CSV/TSV first, then plotted in Python.
+---
 
-## Workflow
+## 1. Overview
 
-1. Backend rule: Python-only — never ask "Python or R?" →
-   `references/backend-selection.md`
-2. Figure contract: core message, chart type, data class, color map, statistics,
-   Chinese filename → `references/figure-contract.md`
-3. Journal specs: single-column default (Nature 89 mm / Science 55 mm /
-   Immunity 85 mm), Arial 7 pt → `references/journal-styles.md`
-4. Plot with mature packages — Python basic charts via **cnsplots** (mandatory),
-   minimal style → `references/chart-types.md`, `references/api.md`
-5. QA: grayscale, CVD, checklist → `references/qa-contract.md`
+Publication guidelines from leading journals converge on the same editorial ideal: a figure should be a minimal, self-contained visual argument that survives reproduction — grayscale printing, colour-vision deficiency, and reduction to column width. In practice, figures produced ad hoc routinely violate these constraints: composite panels that bury single claims, mixed font families, rainbow palettes, hand-drawn annotation, and raster exports with non-editable text.
 
-## File structure
+`nature-figure-pdf` addresses this by encoding the guidelines as an executable workflow. Each figure is specified by a *contract* (core message, journal target, canvas, chart type, colour map, statistics, filename) before any code runs; the render then follows one of five **locked house recipes** — fully specified encodings with validated scripts — and the export is gated by an automated audit (`scripts/figure_qa.py`) that verifies page geometry, embedded fonts at any nesting depth, uniform text size, and colour availability.
+
+## 2. Design principles
+
+| # | Principle | Rationale |
+|---|---|---|
+| 1 | One figure conveys one message | multi-panel composites are rejected by the workflow by design; a multi-point story is delivered as multiple PDFs |
+| 2 | Simplicity first | every surviving mark must encode data; chartjunk, 3-D effects, gradients and unnecessary gridlines are removed |
+| 3 | Arial, 7 pt, one family | journal minima (5–7 pt) are tightened to one uniform size; embedded fonts are verified in the exported PDF |
+| 4 | English in-figure; Chinese filenames | figure text stays ASCII-only for font fidelity; delivery filenames remain descriptive in Chinese |
+| 5 | PDF for submission, PNG for review | vector PDF with editable text (`pdf.fonttype = 42`); one 300-dpi preview companion, no other image files |
+| 6 | Colour from documented palettes only | ColorBrewer, Okabe–Ito, Crameri, viridis family and cnsplots journal presets; rainbow/jet/turbo and ad-hoc hexes are prohibited |
+| 7 | Mature packages only; nothing hand-rolled | Python basic charts via `cnsplots`; statistics from `scipy`/`statsmodels`/`pingouin`; GSEA curves via GseaVis (the single R render) |
+
+## 3. Locked house styles
+
+Five figure classes are governed by fully specified encodings — colour ramps, panel windows, label strategies and canvas geometry are fixed, so identical inputs reproduce identical figures.
+
+| Recipe | Reference convention | Entry point |
+|---|---|---|
+| Heatmap (house style) | square cells, thin black borders, RdBu_r for z-scores, manual inset colourbar | `references/chart-types.md` |
+| GO gene-concept network (cnetplot) | deterministic Jaccard layout, Okabe–Ito gene dots, monochrome-ramp curve accents | `references/chart-types.md` |
+| GO/KEGG enrichment dotplot (Immunity style) | significance-sorted rows, percent gene ratio, data-coloured size key | `references/chart-types.md` |
+| Volcano plot (Immunity style) | grey null / blue down / vermillion up, dashed thresholds, capped ordinate | `references/chart-types.md` |
+| GSEA running-enrichment curve (GseaVis) | monochrome lightness-ramp curve, pure RdBu 11-class data ramp, windowed panels | `scripts/render_gseavis.R` |
+
+Two blocking gates precede any render: the backend rule (Python-only, one R exception) and the cnsplots mandate for basic chart types. Details: `references/backend-selection.md`.
+
+## 4. Colour governance
+
+Colour is governed in three layers:
+
+1. **Palette whitelist** — every colour traces to a documented set: ColorBrewer, Okabe–Ito, Crameri, cmocean, viridis family, or `cnsplots` journal presets (`references/color-maps.md`).
+2. **Scheme organisation** — palettes are arranged by a role framework (主色 primary / 辅色 auxiliary / 强调色 accent) and hue-wheel angle formulas: monochrome lightness ramps within single elements, complementary pairs (~180°) for diverging data, triadic spacing (120°) for elements that must jump clear (`references/color-scheme-design.md`). Gradients inside a single element never interpolate across distant hues.
+3. **Validation** — grayscale survival, colour-vision-deficiency simulation, and palette-name/version reporting (`references/qa-contract.md`).
+
+## 5. Workflow
+
+1. Backend gate — Python-only; R-origin data (Seurat, DESeq2, RDS) is exported to CSV/TSV before plotting
+2. Figure contract — core message, journal target, canvas, chart type, colour map, statistics, Chinese filename
+3. Journal specification — Nature 89 mm / Science 55 mm / Immunity 85 mm defaults, Arial 7 pt
+4. Render — via the locked house recipe (Python; GSEA curves via the GseaVis R render)
+5. Quality assurance — `scripts/figure_qa.py`, then grayscale and CVD checks; a failed check blocks delivery
+
+## 6. Installation and usage
+
+```bash
+# Python >= 3.10
+pip install cnsplots adjustText pymupdf
+# optional, one-time: patched GseaVis for GSEA curves (R >= 4.5)
+Rscript scripts/install_gseavis.R
+```
+
+Each figure class is rendered through its single-source script or recipe snippet; see `references/chart-types.md` and `references/tutorials.md`. The QA gate runs on every export:
+
+```bash
+python scripts/figure_qa.py verify <figure>.pdf --width-mm 88.9
+python scripts/figure_qa.py preview <figure>.pdf
+python scripts/figure_qa.py audit-text <figure>.pdf
+```
+
+## 7. Quality assurance and reproducibility
+
+- `verify` asserts one page, Arial-only embedded fonts at any nesting depth (including Form XObjects), and exact physical width (±0.3 mm)
+- `audit-text` scans the content stream: every text run is 7 pt (mathtext sub/superscripts 0.7×; heatmap colourbar 5.5 pt by exemption), and outlined text fails
+- Deliverables are deterministic: fixed layout seeds (cnetplot), seeded simulation, and recorded palette/limit/normalisation metadata in the caption record
+- 16 behavioural evaluations (`evals/evals.json`) pin the doctrine: backend exclusivity, one-message splitting, language policy, palette provenance, cnsplots mandate, locked house styles
+
+## 8. Repository structure
 
 ```
 nature-figure-pdf/
-├── SKILL.md                     ← skill trigger & doctrine
-├── README.md                    ← this file
-├── evals/evals.json             ← behavior evals
+├── SKILL.md                     ← trigger description and doctrine
+├── README.md                    ← this document
+├── evals/evals.json             ← behavioural evaluations
 ├── scripts/
-│   ├── figure_qa.py             ← single-source QA: verify / preview / audit-text / font.check
-│   ├── render_gseavis.R         ← GSEA running-enrichment curve (the sanctioned R render)
-│   └── install_gseavis.R        ← one-time patched GseaVis setup (R)
+│   ├── figure_qa.py             ← single-source QA (verify/preview/audit-text/font.check)
+│   ├── render_gseavis.R         ← GSEA running-enrichment curve (sanctioned R render)
+│   └── install_gseavis.R        ← one-time patched GseaVis setup
 └── references/
-    ├── figure-contract.md       ← one-message contract template
-    ├── journal-styles.md        ← Nature / Science / Immunity specs
-    ├── color-maps.md            ← scientific color map selection & audit
-    ├── color-scheme-design.md   ← 配色方案设计: roles + hue-wheel angle formulas
-    ├── backend-selection.md     ← Python-only backend rules
+    ├── figure-contract.md       ← figure contract template
+    ├── journal-styles.md        ← Nature / Science / Immunity specifications
+    ├── color-maps.md            ← palette whitelist, selection and audit
+    ├── color-scheme-design.md   ← scheme organisation: roles and hue-wheel formulas
+    ├── backend-selection.md     ← backend rules and R-origin data handling
     ├── design-theory.md         ← minimalism, typography, export policy
-    ├── api.md                   ← Python constants & helpers
-    ├── chart-types.md           ← single-chart recipes (bar/UMAP/heatmap/GSEA/...)
+    ├── api.md                   ← constants, helpers, cnsplots behaviour notes
+    ├── chart-types.md           ← locked single-chart recipes
     ├── tutorials.md             ← end-to-end walkthroughs
     └── qa-contract.md           ← pre-submission checklist
 ```
 
-## Quick-start (Python — basic charts, cnsplots)
+## 9. Scope
 
-```python
-import matplotlib.pyplot as plt
-import cnsplots as cns
+**Intended use.** Single scientific charts for journal submission — bar, violin, scatter, line, heatmap, UMAP/t-SNE, volcano, forest, survival, enrichment dotplot, gene-concept network, GSEA running-enrichment curve — and audits of existing figures against the same standards.
 
-cns.settings.font_sans_serif = ["Arial"]   # Arial-only, before figure()
-cns.settings.savefig_bbox = "standard"     # keep the exact journal canvas
-cns.settings.savefig_transparent = False   # default True — force white background
-cns.settings.axes_linewidth = 0.7          # default 0.5 — mandate is 0.7 pt
-cns.figure(width=252, height=170)          # 252 px = 88.9 mm Nature single column
-cns.settings.pvalue_fontsize = 7
-plt.rcParams.update({"font.size": 7, "axes.labelsize": 7,
-                     "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
-                     "xtick.major.width": 0.7, "ytick.major.width": 0.7})
-cns.barplot(data=df, x="group", y="value", hue="group", legend=False,
-            palette=["#B0B0B0", "#0072B2"], pairs=[("Control", "Treated")])
-cns.savefig("各组指标比较.pdf")
+**Out of scope.** Multi-panel composites (prohibited by principle 1), interactive or exploratory-only graphics, Illustrator/Figma-first layouts, and non-journal deliverables.
 
-# then QA (from the skill directory):
-#   python scripts/figure_qa.py verify 各组指标比较.pdf --width-mm 88.9
-#   python scripts/figure_qa.py preview 各组指标比较.pdf
-```
+## References
 
-Chart types cnsplots does not cover (heatmap, UMAP styling, …) use the rcParams style
-block from `references/api.md`. Missing cnsplots? Stop and `pip install cnsplots` —
-never fall back to seaborn for mandated chart types.
-
-## Quick-start (Python — non-cnsplots charts)
-
-```python
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
-mpl.rcParams.update({
-    "font.family": "sans-serif",
-    "font.sans-serif": ["Arial"],   # Arial only — no fallback families
-    "mathtext.fontset": "custom", "mathtext.rm": "Arial",
-    "mathtext.it": "Arial:italic", "mathtext.bf": "Arial",
-    "pdf.fonttype": 42, "font.size": 7,
-    "axes.labelsize": 7, "xtick.labelsize": 7, "ytick.labelsize": 7,
-    "legend.fontsize": 7,
-    "axes.spines.right": False, "axes.spines.top": False,
-    "axes.linewidth": 0.7, "legend.frameon": False,
-})
-
-# ... one chart, one message ...
-fig.set_size_inches(89 / 25.4, 60 / 25.4)      # exact journal canvas, no tight crop
-fig.savefig("中文描述性文件名.pdf")
-plt.close(fig)
-# then run scripts/figure_qa.py verify + preview  — references/api.md
-```
-
-## Scope
-
-**Use for**: single scientific charts (bar, violin, scatter, line, heatmap, UMAP,
-volcano, forest, survival) targeting Nature / Science / Immunity / Cell / NeurIPS
-venues; GO/KEGG enrichment dotplots, GSEA running-enrichment curves and
-gene-concept networks (locked house recipes); auditing or simplifying existing figures.
-
-**Not for**: multi-panel composite figures (forbidden by doctrine), interactive web
-plots, EDA without a publication target, Illustrator/Figma infographics.
+1. Nature Portfolio. *Research figure guide.* https://research-figure-guide.nature.com/
+2. Cell Press. *Figure guidelines.* https://www.cell.com/figure-guidelines
+3. Harrower M, Brewer CA (2003). ColorBrewer.org: an online tool for selecting colour schemes for maps. *The Cartographic Journal* 40:27–37.
+4. Okabe M, Ito K (2008). *Color universal design (colorbar)*. https://jfly.uni-koeln.de/color/
+5. Crameri F, Shepard GE, Heron PJ (2020). The misuse of colour in science communication. *Nature Communications* 11:5444.
+6. Subramanian A et al. (2005). Gene set enrichment analysis: a knowledge-based approach for interpreting genome-wide expression profiles. *PNAS* 102:15545–15550.
+7. Wu T et al. (2021). clusterProfiler 4.0: a universal enrichment tool for interpreting omics data. *The Innovation* 2:100141.
+8. Zhang J, Li H, Tao W, Zhou J (2025). GseaVis: an R package for enhanced visualization of gene set enrichment analysis in biomedicine. *Med Research.*
+9. Love MI, Huber W, Anders S (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. *Genome Biology* 15:550.
