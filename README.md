@@ -4,6 +4,8 @@
 
 The system is distributed as an agent skill (Python backend, one sanctioned R render) and encodes a fixed set of typographic, statistical and colour principles as non-negotiable doctrine. Every figure is delivered as exactly one vector PDF at the exact journal canvas, accompanied by a 300-dpi PNG review companion, and passes an automated pre-delivery check before it reaches the author.
 
+The workflow skeleton — figure contract before plotting, the blocking backend gate, single-backend rendering with pre-delivery QA, and per-figure independent export — derives from the open-source *nature-figure* agent skill; §10 records the provenance and attribution.
+
 ---
 
 ## 1. Overview
@@ -120,6 +122,15 @@ nature-figure-pdf/
 
 **Out of scope.** Multi-panel composites (prohibited by principle 1), interactive or exploratory-only graphics, Illustrator/Figma-first layouts, and non-journal deliverables.
 
+## 10. Provenance and attribution
+
+This system is a derivative work: the *nature-figure* agent skill serves as the foundation on which the additional rules of this repository were built.
+
+- **Foundation.** The *nature-figure* agent skill — figure contract before plotting, backend gate, single-backend render, QA before delivery, independent export — as distributed by [jing1312/nature-figure-skill](https://github.com/jing1312/nature-figure-skill) (MIT License), an independently hosted derivative snapshot of the upstream project below (baseline commit `f3941a1`, May 2026).
+- **Ultimate upstream.** [Yuan1z0825/nature-skills](https://github.com/Yuan1z0825/nature-skills) (Apache-2.0), the research agent-skill collection where the *nature-figure* skill originates.
+
+Built on that foundation, this repository adds: the Python-only backend mandate with R-origin data exported to CSV/TSV (one sanctioned GseaVis render); the cnsplots requirement for basic chart types; the one-figure-one-message doctrine with prohibition of composites; the five locked house recipes (§3); the single-source QA script `scripts/figure_qa.py` with full-depth font auditing; the PDF-plus-300-dpi-PNG deliverable contract; the colour-governance framework (§4); the Chinese-filename delivery policy; and the behavioural evaluation suite. Unmodified upstream material is not claimed as original work; redistribution of this repository should preserve the attributions above.
+
 ## References
 
 1. Nature Portfolio. *Research figure guide.* https://research-figure-guide.nature.com/
@@ -131,3 +142,5 @@ nature-figure-pdf/
 7. Wu T et al. (2021). clusterProfiler 4.0: a universal enrichment tool for interpreting omics data. *The Innovation* 2:100141.
 8. Zhang J, Li H, Tao W, Zhou J (2025). GseaVis: an R package for enhanced visualization of gene set enrichment analysis in biomedicine. *Med Research.*
 9. Love MI, Huber W, Anders S (2014). Moderated estimation of fold change and dispersion for RNA-seq data with DESeq2. *Genome Biology* 15:550.
+10. Yuan1z0825 and contributors. *nature-skills: agent skills for research and scientific figure workflows.* https://github.com/Yuan1z0825/nature-skills (Apache-2.0).
+11. jing1312 and contributors. *nature-figure-skill: independently hosted nature-figure agent skill.* https://github.com/jing1312/nature-figure-skill (MIT).
