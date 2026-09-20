@@ -175,18 +175,122 @@ cns.savefig("细胞类型UMAP分布.pdf")
 - Coloring by a continuous gene: sequential viridis/cividis + colorbar, not a rainbow.
 - Equal aspect ratio (`ax.set_aspect("equal")` on the returned axes).
 
-## Volcano plot (differential test)
+## Volcano plot (Immunity house style)
+
+**Standard name:** volcano plot. The single message: **which genes are
+significantly up- or down-regulated, and how strongly.** Modeled on
+Immunity/Cell Press volcano panels (e.g. PMC7368915 Fig 3B): gray null mass,
+blue down / vermillion up, dashed thresholds, a handful of gene callouts.
+
+`cnsplots.volcanoplot` exists but cannot express the locked house style (cap
+staggering, flank label slots); drawing on a bare matplotlib axes is sanctioned
+here, exactly like the heatmap house style.
+
+### Encoding spec (locked — do not re-derive per figure)
+
+| Element | Encoding | Rule |
+|---|---|---|
+| Dot color | NS / down / up | NS = neutral `"0.78"`; down = Okabe-Ito blue `#0072B2`; up = Okabe-Ito vermillion `#D55E00`. Red-green pairs are forbidden |
+| DE call | `padj < 0.05` AND `|log2FC| >= 1` | thresholds drawn as 0.5 pt gray dashed lines (`(0, (4, 3))`), both verticals + the horizontal |
+| y axis | −log10(adjusted P) | **capped** (`CAP = 40`); genes beyond the cap are **rank-staggered** inside the cap band (0.12 pt steps by true significance) — disclose in the caption, never let one outlier flatten the cloud |
+| Gene labels | ≤2 per side inside the crowded cap zone at **fixed flank slots** with leader lines; 2–3 per side in open space via `adjustText` | gene symbols plain Arial 7 pt; never label more than ~9 genes total |
+| Axes | left+bottom spines only | x = log2 fold change; no gridlines, no in-figure title, no legend box |
 
 ```python
-# stats from mature packages only, e.g. statsmodels or scanpy rank_genes_groups
-cns.figure(width=252, height=170)   # 88.9 mm single column
-ax = cns.scatterplot(data=de, x="log2FC", y="neg_log10_p", hue="direction")
-ax.axhline(-np.log10(0.05), lw=0.5, color="0.6"); ax.axvline(0, lw=0.5, color="0.6")
-cns.savefig("差异表达基因火山图.pdf")
+# Volcano plot (Immunity house style) — which genes are significantly
+# up- or down-regulated, and how strongly.
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+mpl.rcParams.update({                    # mandatory style block (references/api.md)
+    "font.family": "sans-serif", "font.sans-serif": ["Arial"],
+    "mathtext.fontset": "custom", "mathtext.rm": "Arial",
+    "mathtext.it": "Arial:italic", "mathtext.bf": "Arial",
+    "pdf.fonttype": 42, "font.size": 7,
+    "axes.spines.right": False, "axes.spines.top": False,
+    "axes.linewidth": 0.7, "legend.frameon": False,
+    "xtick.major.width": 0.7, "ytick.major.width": 0.7,
+})
+
+SRC = "DE.csv"
+# map onto the source table (DESeq2: gene_name/log2FoldChange/padj;
+# clusterProfiler or limma exports differ — adapt the three names)
+COL = {"gene": "gene_name", "lfc": "log2FoldChange", "p": "padj"}
+OUT = "差异表达火山图"
+LFC, ALPHA, CAP = 1.0, 0.05, 40.0
+N_SLOTS, N_OPEN = 2, 2                  # labels per side: cap zone / open space
+
+d = pd.read_csv(SRC)
+n_na = int(d[COL["p"]].isna().sum())
+d = d.dropna(subset=[COL["p"]]).copy()
+d["nlp"] = -np.log10(pd.to_numeric(d[COL["p"]], errors="coerce"))
+up = (d.nlp > -np.log10(ALPHA)) & (d[COL["lfc"]] >= LFC)
+dn = (d.nlp > -np.log10(ALPHA)) & (d[COL["lfc"]] <= -LFC)
+beyond = d.nlp > CAP
+d["nlp_c"] = d.nlp.clip(upper=CAP)      # sort the capped band by true significance
+order = d.loc[beyond, "nlp"].sort_values(ascending=False)
+d.loc[order.index, "nlp_c"] = CAP - 0.12 * np.arange(len(order))
+
+NS_C, UP_C, DN_C = "0.78", "#D55E00", "#0072B2"   # Okabe-Ito vermillion / blue
+fig, ax = plt.subplots(figsize=(252 / 72, 2.85), facecolor="white")  # 88.9 mm single col
+fig.subplots_adjust(left=0.155, right=0.985, top=0.97, bottom=0.155)
+ax.scatter(d.loc[~(up | dn), COL["lfc"]], d.loc[~(up | dn), "nlp_c"],
+           s=4, color=NS_C, rasterized=True, zorder=2)
+ax.scatter(d.loc[dn, COL["lfc"]], d.loc[dn, "nlp_c"], s=9, color=DN_C, zorder=3)
+ax.scatter(d.loc[up, COL["lfc"]], d.loc[up, "nlp_c"], s=9, color=UP_C, zorder=3)
+ax.axhline(-np.log10(ALPHA), color="0.45", lw=0.5, ls=(0, (4, 3)), zorder=1)
+for xv in (-LFC, LFC):
+    ax.axvline(xv, color="0.45", lw=0.5, ls=(0, (4, 3)), zorder=1)
+
+# cap-zone genes: fixed flank slots + short leader lines (adjustText cannot
+# separate labels that start stacked at the same clamped position)
+def slot_labels(rows, side):
+    for i, (_, r) in enumerate(rows.iterrows()):
+        ly = CAP + (2.6 if i == 0 else -0.4)      # two stacked slots per side
+        lx = r[COL["lfc"]] + (2.6 if side == "up" else -2.6)
+        ax.plot([r[COL["lfc"]], lx - (0.25 if side == "up" else -0.25)],
+                [r.nlp_c, ly], color="0.55", lw=0.4, zorder=4)
+        ax.text(lx, ly, r[COL["gene"]], fontsize=7, zorder=5,
+                ha="left" if side == "up" else "right", va="center")
+
+slot_labels(d[dn & beyond].nsmallest(N_SLOTS, COL["p"]), "dn")
+slot_labels(d[up & beyond].nsmallest(N_SLOTS, COL["p"]), "up")
+
+# open-space genes: adjustText handles them freely
+open_pick = pd.concat([d[dn & ~beyond].nsmallest(N_OPEN, COL["p"]),
+                       d[up & ~beyond].nsmallest(N_OPEN + 1, COL["p"])])
+texts = [ax.text(r[COL["lfc"]], r.nlp_c, r[COL["gene"]], fontsize=7, zorder=5)
+         for _, r in open_pick.iterrows()]
+from adjustText import adjust_text
+adjust_text(texts, ax=ax, expand=(1.2, 1.5),
+            arrowprops=dict(arrowstyle="-", lw=0.4, color="0.45"))
+
+ax.set_xlim(-7.6, 7.6)                  # widen to the data range if needed
+ax.set_ylim(-3, CAP + 6)
+ax.set_xlabel("$\\log_{2}$ fold change", fontsize=7)
+ax.set_ylabel("$-\\log_{10}$ adjusted $P$", fontsize=7)
+ax.tick_params(labelsize=7)
+plt.tight_layout(pad=0.1)
+fig.savefig(f"{OUT}.pdf")               # exact 88.9 mm canvas, no tight crop
+plt.close(fig)
+print(f"QA: up {int(up.sum())}, down {int(dn.sum())}, capped {int(beyond.sum())}, "
+      f"genes w/o adjusted P not shown: {n_na}")
 ```
 
-- Prefer the dedicated cnsplots volcano function when it matches the data frame;
-  otherwise draw the thresholds with `axhline`/`axvline` on the cnsplots axes.
+```bash
+python scripts/figure_qa.py verify 差异表达火山图.pdf --width-mm 88.9
+python scripts/figure_qa.py preview 差异表达火山图.pdf
+python scripts/figure_qa.py audit-text 差异表达火山图.pdf
+```
+
+**Caption must state:** DE method and model (e.g. DESeq2, Wald test), thresholds
+(`padj < 0.05`, `|log2FC| >= 1`), numbers of up/down genes, that −log10(adjusted
+P) is capped at 40 with beyond-cap genes staggered by true rank (not to scale),
+and how many genes lack an adjusted P and are therefore not shown.
+
+---
 
 ## Forest / effect-size plot
 

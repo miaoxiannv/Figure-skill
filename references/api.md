@@ -221,6 +221,7 @@ NEUTRALS = {
 | UMAP | `scanpy.pl.umap` or `umap.UMAP` embedding + `cns.scatterplot` | implementing UMAP/t-SNE yourself |
 | GO gene-concept network (cnetplot) | `networkx` bipartite graph + matplotlib, per the locked recipe in `references/chart-types.md` (deterministic Jaccard layout) | Cytoscape screenshots; unseeded random layouts; ad-hoc gene-dot hexes |
 | GO/KEGG enrichment dotplot | matplotlib scatter per the locked Immunity-style recipe in `references/chart-types.md` (compact corner legend) | oversized gray legends; diverging red-blue scales for P values |
+| Volcano | matplotlib scatter per the locked Immunity-style recipe in `references/chart-types.md` (Okabe-Ito up/down colors, capped y, flank label slots) | red-green up/down pairs; uncapped outlier axes; ggplot default themes |
 | Dimensionality reduction | `scanpy` / `sklearn.manifold` | custom SVD-for-plot hacks |
 | Statistics | `scipy.stats`, `statsmodels`, `pingouin`; on-figure marks via cnsplots `pairs=` | hand-written t-test/p-values |
 

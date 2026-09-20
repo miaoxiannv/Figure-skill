@@ -248,6 +248,26 @@
         }
       ],
       "files": []
+    },
+    {
+      "id": "volcano-immunity-style",
+      "prompt": "帮我画一张火山图，看哪些基因在SLE病人B细胞里上调下调。",
+      "expected_output": "The assistant produces the locked volcano per references/chart-types.md: NS genes light gray, down genes Okabe-Ito blue #0072B2, up genes vermillion #D55E00 (never red-green pairs); dashed threshold lines at |log2FC|>=1 and padj=0.05 on -log10(adjusted P); the y axis capped with beyond-cap genes rank-staggered inside the cap band (disclosed in the caption); gene labels limited to ~9 with flank slots in the crowded cap zone and adjustText in open space; one 88.9 mm Chinese-named PDF, then figure_qa.py verify + preview.",
+      "assertions": [
+        {
+          "name": "okabe_ito_up_down",
+          "description": "Up/down genes use #D55E00/#0072B2 with gray NS; red-green color pairs are a failure."
+        },
+        {
+          "name": "capped_y_with_disclosure",
+          "description": "The y axis is capped and beyond-cap genes staggered by true rank; the cap is disclosed in the caption instead of letting one outlier flatten the cloud."
+        },
+        {
+          "name": "threshold_lines_and_qa",
+          "description": "Dashed threshold lines at the stated cutoffs; delivers one Chinese-named PDF and runs scripts/figure_qa.py verify + preview."
+        }
+      ],
+      "files": []
     }
   ]
 }
