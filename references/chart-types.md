@@ -682,6 +682,204 @@ reproducibility.
 
 ---
 
+## GO radial network (concentric rings, house style)
+
+**Standard name:** GO radial / concentric enrichment network — a centre anchor, one
+circle per merged functional group, and one dot per gene on an outer ring. The single
+message: **which functional programmes the gene set hits, how large each is, and how
+the genes are distributed among them.**
+
+**Locked house style (user-approved 2026-10-05 — apply as-is, do not re-derive).**
+Provenance: promoted from the user's own `plot_GO_merged_groups_radial.py`
+(Chenjuan WES project, 2026-08-27), whose comment reads *"the radial positions below
+are intentional, matching the circular cnetplot-like reference style"*. Use it when
+the ask is a **radial / 同心圆 / GO 圆环** figure — it is not the cnetplot above.
+
+### Encoding spec (locked — do not re-derive per figure)
+
+| Element | Encoding | Rule |
+|---|---|---|
+| Centre anchor | fixed | filled circle, radius **0.19** (data units), face `#B2185B` lightened 52 %, edge `#B2185B` 1.2 pt; label `GO enrichment`, two lines, **15.5 pt bold** |
+| Group ring (inner) | one circle per merged group | radius **0.43**, equal angles `π/2 − 2πi/n` (first group at 12 o'clock, clockwise) |
+| Group circle size | gene count | `r = 0.078 + 0.0072 · √count` |
+| Group circle colour | group identity (categorical) | documented categorical palette only; face = colour lightened 35 %, edge = full colour, 1.0 pt |
+| Group label | group name, `textwrap` at 18 chars | **7.0 pt**, colour = group colour darkened 38 %, centred inside the circle |
+| Gene ring (outer) | one dot per gene | radius **0.98** |
+| Gene sector | contiguous per group | width ∝ that group's gene count, `sector_gap = 2.8°` |
+| Gene dot colour | its own group | group colour lightened 50 %, white edge 0.45 pt |
+| Gene dot size | ring density (see below) | `s = π/4 · (0.85 · spacing)²`, `spacing = 2π·gene_radius·PPU/N`, clipped to `[8, 168]` pt² |
+| Edge, centre → group | membership | `arc3`, alternating `rad = ±0.115`, 1.05 pt, alpha 0.48, group colour |
+| Edge, group → gene | membership | `arc3`, `rad = clip(0.18·relative/half_width, ±0.18)`, 0.42 pt, alpha 0.24, group colour |
+| Cross-group edges | **none** | never drawn — the ring owns the grouping |
+| Gene labels | **none in the figure** | hundreds of 7 pt labels cannot survive; gene semantics go in the caption |
+
+**Gene dot size — do not hard-code `s=168`.** The original WES script wrote `s=168`,
+which is calibrated for ≈100 genes. At 267 genes the dots fuse into a continuous
+band. Compute the size from the ring circumference instead:
+`PPU = WIDTH_IN·72 / 2.16` (points per data unit), `N` = total genes drawn,
+`spacing = 2π·0.98·PPU/N`, `s = π/4·(0.85·spacing)²`, clipped to `[8, 168]`.
+When the figure ships as a **paired set** (e.g. up and down), compute `s` once from
+the denser member and reuse it in both, so the two panels read at one scale.
+
+### Sanctioned deviation: the centre anchor
+
+The centre label is **15.5 pt bold** — the one text size in this recipe that leaves
+the 7 pt law (analogous to the heatmap colorbar's 5.5 pt). It is the single anchor of
+a concentric layout and is unreadable at 7 pt inside a ≈43 mm circle. Every other
+string in the figure is **7.0 pt**. `figure_qa.py` accepts it through the named
+constant `CENTRE_ANCHOR_PT`; do not widen the allowlist further.
+
+### Canvas, export, and QA
+
+Square canvas that follows the content: `figsize=(WIDTH_IN, WIDTH_IN)`, `WIDTH_IN = 9.5`
+(241 mm). Export with `bbox_inches="tight", pad_inches=0.04` — the outer dots and the
+group labels reach the axes edge, so the drawn ink, not `set_xlim`, bounds the figure.
+**`verify` against the measured page width, not `WIDTH_IN`** (9.5 in → 243.1 mm here):
+
+```bash
+python scripts/figure_qa.py verify 图.pdf --width-mm <measured>
+python scripts/figure_qa.py preview 图.pdf
+python scripts/figure_qa.py audit-text 图.pdf   # 7 pt, + 15.5 pt centre anchor
+```
+
+### Layout procedure (deterministic — no random seed)
+
+1. **Merge the enriched terms into functional groups.** The recipe is built for
+   **5–8 groups**; more than ~10 inner circles overlap. The merge table (which GO terms
+   went into which group) is part of the result and belongs in the caption or supplement.
+2. Group gene set = **union** of the member terms' gene lists.
+3. Group angles: `π/2 − 2πi/n`; gene sectors: contiguous, width ∝ group gene count,
+   2.8° gap between sectors.
+4. Everything else is fixed by the encoding table; there is no seed and no force layout.
+5. **Label the direction in the caption and the filename** (`…上调…` / `…下调…`). Two
+   sibling figures otherwise look alike.
+
+```python
+# GO radial network (concentric rings, house style) — one message: which functional
+# programmes the gene set hits, how large each is, and how the genes distribute.
+import math
+import textwrap
+from pathlib import Path
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from matplotlib.colors import to_rgb
+from matplotlib.patches import Circle, FancyArrowPatch
+
+mpl.rcParams.update({                    # mandatory style block (references/api.md)
+    "font.family": "sans-serif", "font.sans-serif": ["Arial"],
+    "pdf.fonttype": 42, "ps.fonttype": 42, "font.size": 7,
+})
+
+# 1. functional groups: label -> member GO terms (the merge is part of the result)
+GROUPS = {
+    "G1": ("Type I interferon response", ["Response to Interferon-Beta"]),
+    "G2": ("NF-kappaB signaling",        ["Regulation of Canonical NF-kappaB ..."]),
+    # ... 5-8 groups
+}
+PALETTE = {"G1": "#4C78A8", "G2": "#F58518", "G3": "#54A24B", "G4": "#B279A2",
+           "G5": "#E45756", "G6": "#72B7B2", "G7": "#9D755D", "G8": "#D45087"}
+
+WIDTH_IN = 9.5
+OUT = Path("GO径向网络图")           # Chinese filename -> OUT.pdf + OUT_预览.png
+
+
+def lighten(c, a=0.62):
+    return tuple(np.asarray(to_rgb(c)) * (1 - a) + a)
+
+
+def darken(c, a=0.20):
+    return tuple(np.asarray(to_rgb(c)) * (1 - a))
+
+
+def draw(enrichment_tsv, groups, out):
+    d = pd.read_csv(enrichment_tsv, sep="\t")
+    d["term"] = d["Term"].str.replace(r"\s*\(GO:\d+\)$", "", regex=True)
+    order = list(groups)
+    labels = {g: groups[g][0] for g in order}
+    gene_sets = {}
+    for g in order:
+        sub = d[d["term"].isin(groups[g][1])]
+        if len(sub) != len(groups[g][1]):
+            raise ValueError(f"group {g}: terms missing from the enrichment table")
+        gene_sets[g] = sorted({x for s in sub["Genes"]
+                               for x in str(s).split(";") if x and x != "nan"})
+
+    counts = {g: len(gene_sets[g]) for g in order}
+    angles = {g: math.pi / 2 - 2 * math.pi * i / len(order) for i, g in enumerate(order)}
+    gr, ger, cen = 0.43, 0.98, 0.19
+    gpos = {g: np.array([gr * math.cos(angles[g]), gr * math.sin(angles[g])]) for g in order}
+
+    n_total = sum(counts.values())
+    ppu = WIDTH_IN * 72 / 2.16                       # points per data unit
+    spacing = 2 * math.pi * ger * ppu / n_total      # ring pitch, points
+    dot_s = float(np.clip(math.pi / 4 * (0.85 * spacing) ** 2, 8, 168))
+
+    gap = math.radians(2.8)
+    avail = 2 * math.pi - gap * len(order)
+    start = math.pi / 2 + math.pi / len(order)
+    gene_pos, gene_angle, bounds = {}, {}, {}
+    for g in order:
+        width = avail * counts[g] / n_total
+        end = start - width
+        for gene, a in zip(gene_sets[g],
+                           np.linspace(start - gap / 2, end + gap / 2, counts[g])):
+            gene_angle[gene] = float(a)
+            gene_pos[gene] = np.array([ger * math.cos(a), ger * math.sin(a)])
+        bounds[g] = (start, end)
+        start = end - gap
+
+    fig, ax = plt.subplots(figsize=(WIDTH_IN, WIDTH_IN), facecolor="white")
+    for g in order:                                   # group -> gene edges
+        src = gpos[g]; ca = angles[g]; ss, se = bounds[g]
+        hw = max(abs(ss - se) / 2, 1e-6)
+        for gene in gene_sets[g]:
+            rel = math.atan2(math.sin(gene_angle[gene] - ca),
+                             math.cos(gene_angle[gene] - ca))
+            rad = float(np.clip(0.18 * rel / hw, -0.18, 0.18))
+            ax.add_patch(FancyArrowPatch(src, gene_pos[gene], arrowstyle="-",
+                                         connectionstyle=f"arc3,rad={rad:.3f}",
+                                         linewidth=0.42, color=PALETTE[g],
+                                         alpha=0.24, zorder=1))
+    for i, g in enumerate(order):                     # centre -> group edges
+        rad = 0.115 if i % 2 == 0 else -0.115
+        ax.add_patch(FancyArrowPatch((0, 0), gpos[g], arrowstyle="-",
+                                     connectionstyle=f"arc3,rad={rad:.3f}",
+                                     color=PALETTE[g], linewidth=1.05, alpha=0.48, zorder=2))
+    ax.add_patch(Circle((0, 0), radius=cen, facecolor=lighten("#B2185B", 0.52),
+                        edgecolor="#B2185B", linewidth=1.2, alpha=0.96, zorder=3.5))
+    for g in order:                                   # outer gene dots
+        xy = np.asarray([gene_pos[x] for x in gene_sets[g]])
+        ax.scatter(xy[:, 0], xy[:, 1], s=dot_s, color=lighten(PALETTE[g], 0.50),
+                   edgecolors="white", linewidths=0.45, alpha=0.96, zorder=3)
+    for g in order:                                   # inner group circles
+        xy = gpos[g]
+        ax.add_patch(Circle(xy, radius=0.078 + 0.0072 * math.sqrt(counts[g]),
+                            facecolor=lighten(PALETTE[g], 0.35), edgecolor=PALETTE[g],
+                            linewidth=1.0, alpha=0.90, zorder=4))
+        ax.text(*xy, textwrap.fill(labels[g], width=18), ha="center", va="center",
+                fontsize=7, color=darken(PALETTE[g], 0.38), linespacing=0.90, zorder=5)
+    ax.text(0, 0, "GO\nenrichment", ha="center", va="center", fontsize=15.5,
+            weight="bold", color="#B2185B", linespacing=0.92, zorder=5)   # sanctioned anchor
+    ax.set_xlim(-1.08, 1.08); ax.set_ylim(-1.08, 1.08)
+    ax.set_aspect("equal", adjustable="box"); ax.axis("off")
+    fig.tight_layout(pad=0.05)
+    fig.savefig(f"{out}.pdf", bbox_inches="tight", pad_inches=0.04)
+    plt.close(fig)
+
+
+draw("enrichment.tsv", GROUPS, OUT)
+```
+
+**Caption must state:** enrichment test, library and source (e.g. GO BP 2025, Fisher
+exact, background = tested genes), the **term→group merge table**, group circle size =
+member gene count, gene dot = one gene (colour = its group), the fact that the sectors
+are proportional to gene count, and the figure's direction (up/down in the contrast).
+
+---
+
 ## Forbidden chart types (do not suggest, do not draw)
 
 - **Dumbbell / 杠铃图** (two dots + connecting segment per row) and

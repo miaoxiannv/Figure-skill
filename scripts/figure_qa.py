@@ -22,6 +22,7 @@ from pathlib import Path
 
 BASE_PT = 7.0            # the skill's uniform text size
 COLORBAR_MICRO_PT = 5.5  # sanctioned only inside the locked heatmap house style
+CENTRE_ANCHOR_PT = 15.5  # sanctioned only for the locked radial-network centre anchor
 WIDTH_TOL_MM = 0.3
 
 
@@ -76,11 +77,13 @@ def render_preview(pdf_path: str | Path) -> Path:
 
 
 def audit_text_sizes(pdf_path: str | Path,
-                     allowed_pt: tuple[float, ...] = (BASE_PT, COLORBAR_MICRO_PT)) -> dict:
+                     allowed_pt: tuple[float, ...] = (BASE_PT, COLORBAR_MICRO_PT,
+                                                      CENTRE_ANCHOR_PT)) -> dict:
     """Content-stream Tf scan: every font-size command must be an allowed size
-    (7 pt text; 5.5 pt only in the heatmap house style colorbar) or the
-    mathtext sub/superscript scale (0.7 x the base). Any other size is a
-    delivery blocker. Needs an uncompressed or decodable content stream."""
+    (7 pt text; 5.5 pt only in the heatmap house style colorbar; 15.5 pt only for
+    the radial-network centre anchor) or the mathtext sub/superscript scale
+    (0.7 x the base). Any other size is a delivery blocker. Needs an
+    uncompressed or decodable content stream."""
     import re
 
     import pymupdf

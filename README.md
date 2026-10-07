@@ -28,12 +28,13 @@ Publication guidelines from leading journals converge on the same editorial idea
 
 ## 3. Locked house styles
 
-Five figure classes are governed by fully specified encodings — colour ramps, panel windows, label strategies and canvas geometry are fixed, so identical inputs reproduce identical figures.
+Six figure classes are governed by fully specified encodings — colour ramps, panel windows, label strategies and canvas geometry are fixed, so identical inputs reproduce identical figures.
 
 | Recipe | Reference convention | Entry point |
 |---|---|---|
 | Heatmap (house style) | square cells, thin black borders, RdBu_r for z-scores, manual inset colourbar | `references/chart-types.md` |
 | GO gene-concept network (cnetplot) | deterministic Jaccard layout, Okabe–Ito gene dots, monochrome-ramp curve accents | `references/chart-types.md` |
+| GO radial network (concentric rings) | centre anchor / inner group circles / outer gene dots, sector width ∝ gene count, deterministic | `references/chart-types.md` |
 | GO/KEGG enrichment dotplot (Immunity style) | significance-sorted rows, percent gene ratio, data-coloured size key | `references/chart-types.md` |
 | Volcano plot (Immunity style) | grey null / blue down / vermillion up, dashed thresholds, capped ordinate | `references/chart-types.md` |
 | GSEA running-enrichment curve (GseaVis) | monochrome lightness-ramp curve, pure RdBu 11-class data ramp, windowed panels | `scripts/render_gseavis.R` |

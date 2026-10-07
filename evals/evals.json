@@ -18,6 +18,30 @@
       "files": []
     },
     {
+      "id": "radial-network-not-cnetplot",
+      "prompt": "画一张 GO 同心圆径向网络图：中心一个 GO 大圆，通路是内圈的圆，基因是最外圈的圆点。",
+      "expected_output": "The assistant selects the locked GO radial network (concentric rings) recipe, NOT the cnetplot. It merges the enriched terms into 5-8 functional groups (more than ~10 inner circles overlap), keeps every string at 7.0 pt except the sanctioned 15.5 pt centre anchor, derives the outer gene-dot size from the ring circumference instead of hard-coding s=168, and delivers one PDF plus one 300-dpi _预览.png with a Chinese filename.",
+      "assertions": [
+        {
+          "name": "radial_not_cnetplot",
+          "description": "The figure is drawn as concentric rings (centre anchor + inner group circles + outer gene dots); no spring/Jaccard bipartite layout is used."
+        },
+        {
+          "name": "group_merge_stated",
+          "description": "The response states which GO terms were merged into which functional group, and keeps the group count within 5-8."
+        },
+        {
+          "name": "font_law_respected",
+          "description": "All strings are 7.0 pt except the sanctioned 15.5 pt centre anchor; audit-text passes."
+        },
+        {
+          "name": "dot_size_derived",
+          "description": "The outer gene dot size is computed from the ring circumference and clipped to [8, 168] pt^2, not hard-coded at 168."
+        }
+      ],
+      "files": []
+    },
+    {
       "id": "backend-python-missing-package",
       "prompt": "Use Python to make a Nature-style heatmap figure with simulated data. Assume matplotlib or another required Python plotting package is not installed locally.",
       "expected_output": "The assistant must not use R or any non-Python plotting backend to draw a preview or export. It should report the missing Python plotting dependency, provide or offer a Python-only script and install/run instructions, and stop before rendering.",

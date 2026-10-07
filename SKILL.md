@@ -253,7 +253,8 @@ def save_pub(fig, chinese_filename, width_mm=89, height_mm=60):
 - Single scientific figures for Nature, Science, Immunity, Cell, or similar venues.
 - Bar charts, scatter plots, UMAP/t-SNE embeddings, heatmaps, line trends, distributions,
   volcano plots, forest plots, GO/KEGG enrichment dotplots, GSEA running-enrichment
-  curves, GO gene-concept networks (cnetplot style) — one chart type per file.
+  curves, GO gene-concept networks (cnetplot style), GO radial networks (concentric
+  rings) — one chart type per file.
 - Requests to audit or simplify an existing figure for journal submission.
 
 ## When NOT to load

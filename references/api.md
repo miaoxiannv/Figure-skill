@@ -220,6 +220,7 @@ NEUTRALS = {
 | Heatmap | `seaborn.heatmap` (with `cmap=`, `center=` for diverging); cnsplots clustered heatmap for clustering | manual cell rectangles |
 | UMAP | `scanpy.pl.umap` or `umap.UMAP` embedding + `cns.scatterplot` | implementing UMAP/t-SNE yourself |
 | GO gene-concept network (cnetplot) | `networkx` bipartite graph + matplotlib, per the locked recipe in `references/chart-types.md` (deterministic Jaccard layout) | Cytoscape screenshots; unseeded random layouts; ad-hoc gene-dot hexes |
+| GO radial network (concentric rings) | matplotlib circles + `FancyArrowPatch` per the locked recipe in `references/chart-types.md` (centre anchor / group ring / gene ring; deterministic, no seed) | re-deriving the ring geometry per figure; hard-coded `s=168` gene dots; >10 inner circles; using this where a cnetplot was asked for |
 | GO/KEGG enrichment dotplot | matplotlib scatter per the locked Immunity-style recipe in `references/chart-types.md` (compact corner legend) | oversized gray legends; diverging red-blue scales for P values |
 | Volcano | matplotlib scatter per the locked Immunity-style recipe in `references/chart-types.md` (Okabe-Ito up/down colors, capped y, flank label slots) | red-green up/down pairs; uncapped outlier axes; ggplot default themes |
 | GSEA running-enrichment curve | GseaVis (R) via `scripts/render_gseavis.R` — the one sanctioned R render (see `references/chart-types.md`) | hand-rolled matplotlib GSEA curves; gseapy default styling; unwindowed rank panels |
